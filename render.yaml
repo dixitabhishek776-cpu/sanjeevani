@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: sanjeevani-backend-demo
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: SANJEEVANI_JWT_SECRET
+        generateValue: true
+      - key: SANJEEVANI_ENCRYPTION_MASTER_KEY_PROVIDER
+        value: local_dev
+      - key: SANJEEVANI_CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sanjeevani-demo-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: sanjeevani-demo-redis
+          type: redis
+          property: connectionString
+      - key: SANJEEVANI_DEMO_MODE
+        value: "true"
+
+  - type: redis
+    name: sanjeevani-demo-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: sanjeevani-demo-db
+    plan: free

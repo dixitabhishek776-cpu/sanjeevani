@@ -1,0 +1,67 @@
+name: Sanjeevani release gates
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sanjeevani-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sanjeevani
+          POSTGRES_PASSWORD: sanjeevani
+          POSTGRES_DB: sanjeevani
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sanjeevani -d sanjeevani"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql://sanjeevani:sanjeevani@localhost:5432/sanjeevani
+      REDIS_URL: redis://localhost:6379/0
+      SANJEEVANI_ENV: test
+      SANJEEVANI_MASTER_KEY: ci-test-master-key-0123456789012345678901234567890123456789
+      SANJEEVANI_JWT_SECRET: ci-test-jwt-secret-0123456789012345678901234567890123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r backend/requirements.txt
+      - run: cd backend && alembic upgrade head
+      - run: python -m pytest tests -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '20', cache: npm, cache-dependency-path: frontend/package.json}
+      - run: cd frontend && npm install --no-audit --no-fund
+      - run: cd frontend && npm run build
+      - run: cd frontend && npm audit --audit-level=high
+
+  release-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python scripts/secret_scan.py
+      - run: python scripts/release_check.py
+      - run: SANJEEVANI_ENV=staging SANJEEVANI_JWT_SECRET=ci-test-jwt-secret-0123456789012345678901234567890123456789 SANJEEVANI_MASTER_KEY=ci-test-master-key-0123456789012345678901234567890123456789 SANJEEVANI_ALERT_WEBHOOK_URL=https://example.invalid python scripts/preflight.py
+      - run: python -m compileall -q backend/app scripts
+      - run: python scripts/launch_gate.py || test $? -eq 2

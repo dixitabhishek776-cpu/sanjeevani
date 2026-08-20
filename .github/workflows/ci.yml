@@ -1,0 +1,48 @@
+name: sanjeevani-ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sanjeevani
+          POSTGRES_PASSWORD: sanjeevani
+          POSTGRES_DB: sanjeevani_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sanjeevani -d sanjeevani_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql+psycopg2://sanjeevani:sanjeevani@localhost:5432/sanjeevani_test
+      REDIS_URL: redis://localhost:6379/0
+      SANJEEVANI_ENV: test
+      SANJEEVANI_JWT_SECRET: ci-only-jwt-secret
+      SANJEEVANI_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      ANTHROPIC_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r backend/requirements.txt
+      - run: python scripts/secret_scan.py
+      - run: python -m compileall -q backend/app backend/tests
+      - run: cd backend && alembic upgrade head
+      - run: pytest -q backend/tests
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '20', cache: npm, cache-dependency-path: frontend/package.json}
+      - run: cd frontend && npm install
+      - run: cd frontend && npx tsc --noEmit
+      - run: cd frontend && npm run build

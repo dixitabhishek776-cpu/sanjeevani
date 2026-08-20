@@ -1,0 +1,4 @@
+"use client";
+import { FormEvent, useState } from "react";
+import { requestPasswordReset } from "../../lib/api";
+export default function ForgotPasswordPage(){const [email,setEmail]=useState("");const [message,setMessage]=useState("");async function submit(e:FormEvent){e.preventDefault();await requestPasswordReset(email);setMessage("If an account exists, reset instructions have been queued.");}return <main className="auth-shell"><form className="auth-card" onSubmit={submit}><h1>Reset your password</h1><p>We will not reveal whether an account exists.</p><label>Email<input required type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><button>Send reset instructions</button>{message&&<div role="status" className="success">{message}</div>}<a href="/login">Back to sign in</a></form></main>}

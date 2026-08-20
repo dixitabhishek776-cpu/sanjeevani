@@ -1,0 +1,81 @@
+# Controlled staging environment. Supply secrets through a local .env.staging file or CI secret store.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sanjeevani_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sanjeevani_staging}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - staging_pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - staging_redis:/data
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sanjeevani_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sanjeevani_staging}
+      REDIS_URL: redis://redis:6379/0
+      SANJEEVANI_ENV: staging
+      SANJEEVANI_JWT_SECRET: ${SANJEEVANI_JWT_SECRET:?set SANJEEVANI_JWT_SECRET}
+      SANJEEVANI_MASTER_KEY: ${SANJEEVANI_MASTER_KEY:?set SANJEEVANI_MASTER_KEY}
+      SANJEEVANI_ENCRYPTION_PROVIDER: local_dev
+      SANJEEVANI_CORS_ORIGINS: http://localhost:3000
+      SANJEEVANI_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      SANJEEVANI_MAX_BODY_BYTES: 262144
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/livez', timeout=2)"]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: worker.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sanjeevani_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sanjeevani_staging}
+      REDIS_URL: redis://redis:6379/0
+      SANJEEVANI_ENV: staging
+      SANJEEVANI_MASTER_KEY: ${SANJEEVANI_MASTER_KEY:?set SANJEEVANI_MASTER_KEY}
+      SANJEEVANI_ENCRYPTION_PROVIDER: local_dev
+    depends_on:
+      backend: {condition: service_healthy}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.staging
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    depends_on:
+      backend: {condition: service_healthy}
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+
+volumes:
+  staging_pg:
+  staging_redis:

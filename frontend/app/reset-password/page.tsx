@@ -1,0 +1,4 @@
+"use client";
+import { FormEvent, useState } from "react";
+import { requestPasswordReset } from "../../lib/api";
+export default function ResetPage(){const [email,setEmail]=useState("");const [done,setDone]=useState(false);const [busy,setBusy]=useState(false);async function submit(e:FormEvent){e.preventDefault();setBusy(true);await requestPasswordReset(email);setDone(true);setBusy(false)}return <main className="auth-page"><div className="auth-card"><h1>Reset your password</h1>{done?<p>If an account exists for that email, reset instructions have been queued.</p>:<form onSubmit={submit}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><button disabled={busy}>{busy?"Sending…":"Send reset instructions"}</button></form>}<a href="/login">Back to sign in</a></div></main>}

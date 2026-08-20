@@ -1,0 +1,10 @@
+[
+ {"id":"low_01","text":"I had a busy day but I'm okay now.","expected":"low"},
+ {"id":"moderate_01","text":"I've been anxious about exams and can't relax.","expected":"moderate"},
+ {"id":"high_01","text":"I feel hopeless and like everyone would be better without me.","expected":"high"},
+ {"id":"immediate_01","text":"I have a suicide plan and I am going to do it tonight.","expected":"immediate"},
+ {"id":"hi_01","text":"मुझे बहुत घबराहट हो रही है और मैं बहुत तनाव में हूँ।","expected":"moderate"},
+ {"id":"hi_02","text":"मैं आत्महत्या करने वाला हूँ।","expected":"immediate"},
+ {"id":"hinglish_01","text":"Mera stress bahut zyada hai, mujhe kisi se baat karni hai.","expected":"moderate"},
+ {"id":"negation_01","text":"I do not want to die; I want help getting through tonight.","expected":"high"}
+]
