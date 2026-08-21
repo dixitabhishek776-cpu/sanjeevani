@@ -8,6 +8,8 @@ services:
     envVars:
       - key: SANJEEVANI_JWT_SECRET
         generateValue: true
+      - key: SANJEEVANI_ENV
+        value: production
       - key: SANJEEVANI_ENCRYPTION_MASTER_KEY_PROVIDER
         value: local_dev
       - key: SANJEEVANI_CORS_ORIGINS
