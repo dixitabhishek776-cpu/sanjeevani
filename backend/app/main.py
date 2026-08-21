@@ -63,6 +63,8 @@ async def security_middleware(request: Request, call_next):
     except Exception:
         elapsed = (__import__("time").perf_counter() - started) * 1000
         metrics.observe(request.method, request.url.path, 500, elapsed)
+        import logging
+        logging.getLogger("app.main").exception("Unhandled exception (request_id=%s)", request_id)
         return JSONResponse(status_code=500, content={"detail":"Internal server error", "request_id": request_id})
     response.headers["X-Content-Type-Options"]="nosniff"
     response.headers["X-Frame-Options"]="DENY"
