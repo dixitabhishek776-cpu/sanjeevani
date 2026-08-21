@@ -24,7 +24,7 @@ def get_client():
 def call_llm(system, user_message, max_tokens=400):
     client = get_client()
     if _backend == "groq":
-        response = client.chat.completions.create(model="llama-3.3-70b-versatile", max_tokens=max_tokens, messages=[{"role": "system", "content": system}, {"role": "user", "content": user_message}], timeout=15.0)
+        response = client.chat.completions.create(model="openai/gpt-oss-20b", max_tokens=max_tokens, messages=[{"role": "system", "content": system}, {"role": "user", "content": user_message}], timeout=15.0)
         return response.choices[0].message.content or ""
     response = client.messages.create(model="claude-sonnet-4-6", max_tokens=max_tokens, system=system, messages=[{"role": "user", "content": user_message}], timeout=15.0)
     return "".join(block.text for block in response.content if block.type == "text")
