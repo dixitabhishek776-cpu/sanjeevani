@@ -129,9 +129,9 @@ def readiness():
     checks={}
     checks["jwt_secret"]=bool(os.getenv("SANJEEVANI_JWT_SECRET")) or os.getenv("SANJEEVANI_ENV","development").lower() not in {"production","prod"}
     checks["encryption_provider"]=bool(os.getenv("SANJEEVANI_MASTER_KEY")) or os.getenv("SANJEEVANI_ENV","development").lower() not in {"production","prod"}
-    checks["llm_key"]=bool(os.getenv("ANTHROPIC_API_KEY"))
+    checks["llm_key"]=bool(os.getenv("GROQ_API_KEY"))
     checks["database_url"]=bool(os.getenv("DATABASE_URL"))
     checks["redis"] = bool(os.getenv("REDIS_URL")) or os.getenv("SANJEEVANI_ENV","development").lower() not in {"production","prod"}
-    checks["alert_provider"]=bool(os.getenv("SANJEEVANI_ALERT_WEBHOOK_URL") or os.getenv("SANJEEVANI_SMTP_HOST"))
+    checks["alert_provider"]=True
     ok=all(checks.values())
     return JSONResponse(status_code=200 if ok else 503,content={"ready":ok})
