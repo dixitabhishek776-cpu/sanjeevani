@@ -161,6 +161,7 @@ def send_message(
         chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"])
     )
     db.add(ai_msg)
+    db.flush()
 
     response = schemas.ChatMessageOut(
         message_id=ai_msg.id,
