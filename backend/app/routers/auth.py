@@ -21,6 +21,15 @@ def _cookie_mode() -> bool:
     return os.getenv("SANJEEVANI_ENV", "development").lower() in {"production", "prod", "staging"}
 
 
+def _is_demo_email(email: str) -> bool:
+    allowed = {
+        item.strip().lower()
+        for item in os.getenv("SANJEEVANI_DEMO_EMAILS", "").split(",")
+        if item.strip()
+    }
+    return email.lower() in allowed
+
+
 def _set_refresh_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key="mb_refresh", value=token, httponly=True, secure=_cookie_mode(),
@@ -57,6 +66,8 @@ def register(request: Request, payload:schemas.UserCreate,db:Session=Depends(get
     db.add(user); db.flush(); db.add(models.UserPreferences(user_id=user.id))
     db.add(models.ConsentRecord(user_id=user.id,consent_type="terms",version=os.getenv("SANJEEVANI_TERMS_VERSION","1.0"),granted=True))
     verify_raw=_issue_one_time_token(db, models.VerificationToken, user.id, dt.datetime.now(dt.timezone.utc)+dt.timedelta(hours=VERIFY_HOURS))
+    if _is_demo_email(email):
+        user.email_verified_at = dt.datetime.now(dt.timezone.utc)
     db.commit(); db.refresh(user)
     # Delivery is provider-backed; never return the verification token in production.
     if os.getenv("SANJEEVANI_ENV","development").lower() not in {"production","prod"}:
