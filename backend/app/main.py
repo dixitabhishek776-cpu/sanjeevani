@@ -35,7 +35,7 @@ app.add_middleware(
     allow_origins=[o.strip() for o in os.getenv("SANJEEVANI_CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "Idempotency-Key"],
 )
 
 app.include_router(auth.router)
