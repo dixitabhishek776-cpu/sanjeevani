@@ -634,7 +634,30 @@ def run_page_safely(page_fn, *args):
 # Main app / navigation
 # ---------------------------------------------------------------------------
 
+def render_brand_header():
+    logo_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "assets",
+        "sanjeevani_logo.png",
+    )
+
+    col1, col2 = st.columns([1, 6])
+
+    with col1:
+        st.image(logo_path, width=75)
+
+    with col2:
+        st.markdown(
+            "<h1 style='margin:8px 0 0 0;'>Sanjeevani</h1>"
+            "<p style='margin:0;color:#5b6979;'>"
+            "AI-powered emotional wellness & safety-aware support"
+            "</p>",
+            unsafe_allow_html=True,
+        )
+
+
 def main():
+    render_brand_header()
     render_banner()
 
     if "user_id" not in st.session_state:
