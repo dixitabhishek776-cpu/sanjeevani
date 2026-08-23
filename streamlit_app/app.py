@@ -589,14 +589,14 @@ def page_system_status(db):
     col1, col2 = st.columns(2)
     with col1:
         try:
-            db.execute(__import__("sqlalchemy").text("SELECT 1"))
+            result = db.execute(__import__("sqlalchemy").text("SELECT 1")); result.fetchone()
             st.success("Database: reachable")
         except Exception as exc:
             st.error(f"Database: unreachable ({exc})")
             record_incident("db_healthcheck_failed", str(exc))
     with col2:
         has_key = bool(os.getenv("GROQ_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
-        st.success("LLM API key: configured") if has_key else st.warning("LLM API key: not set — chat will use safe fallback replies")
+        st.success("LLM API key: configured") if has_key else st.warning("LLM API key: not set")
 
     st.divider()
     st.write("**Recent incidents & automatic recoveries**")
