@@ -1,0 +1,684 @@
+"""
+Sanjeevani — Streamlit single-deployment version.
+
+This reuses the existing backend/app package (models, database, agents,
+encryption, rate limiter) directly as a Python library — no HTTP layer,
+no JWT, no CORS, no separate frontend/backend deployment. Streamlit's
+own per-browser session_state replaces the JWT/refresh-token dance
+entirely, which is what eliminates the class of auth bugs the
+Render+Vercel split kept hitting.
+
+This is still a PORTFOLIO DEMO, not a certified mental-health service —
+see the banner rendered on every page.
+"""
+import os
+import sys
+import datetime as dt
+import logging
+from statistics import mean
+
+import streamlit as st
+
+# --- Make the existing backend/app package importable ---
+BACKEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend")
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+from app import models  # noqa: E402
+from app.database import SessionLocal  # noqa: E402
+from app.core.auth import hash_password, verify_password  # noqa: E402
+from app.core.crypto import generate_dek, wrap_dek, unwrap_dek, UserCipher  # noqa: E402
+from app.agents.emotion_agent import EmotionAnalysisAgent  # noqa: E402
+from app.agents.safety_agent import SafetyIntelligenceAgent, decision_router  # noqa: E402
+from app.agents.conversation_agent import ConversationAgent  # noqa: E402
+from app.services import rate_limiter, crisis_resources  # noqa: E402
+from app.incident_log import record_incident, recent_incidents  # noqa: E402
+
+logging.basicConfig(level=os.getenv("SANJEEVANI_LOG_LEVEL", "INFO"))
+logger = logging.getLogger("sanjeevani.streamlit")
+
+emotion_agent = EmotionAnalysisAgent()
+safety_agent = SafetyIntelligenceAgent()
+conversation_agent = ConversationAgent()
+
+st.set_page_config(page_title="Sanjeevani", page_icon="🌱", layout="centered")
+
+# ---------------------------------------------------------------------------
+# DB session (one per Streamlit script run — cheap, pool_pre_ping handles
+# stale connections between runs)
+# ---------------------------------------------------------------------------
+
+def get_db():
+    return SessionLocal()
+
+
+def get_cipher(db, user) -> UserCipher:
+    """Same envelope-encryption flow as backend/app/core/encryption_dep.py,
+    called directly instead of through a FastAPI dependency."""
+    key_row = db.query(models.UserEncryptionKey).filter(
+        models.UserEncryptionKey.user_id == user.id,
+        models.UserEncryptionKey.revoked_at.is_(None),
+    ).first()
+    if key_row is None:
+        plaintext_dek = generate_dek()
+        key_row = models.UserEncryptionKey(user_id=user.id, wrapped_dek=wrap_dek(plaintext_dek))
+        db.add(key_row)
+        db.flush()
+    else:
+        plaintext_dek = unwrap_dek(key_row.wrapped_dek)
+    return UserCipher(plaintext_dek)
+
+
+def _log_audit(db, actor_id, action, target_type, target_id, metadata):
+    db.add(models.AuditLog(
+        actor_id=actor_id, action=action, target_type=target_type,
+        target_id=target_id, audit_metadata=metadata,
+    ))
+
+
+# ---------------------------------------------------------------------------
+# Demo banner — always visible, every page
+# ---------------------------------------------------------------------------
+
+def render_banner():
+    st.markdown(
+        """
+        <div style="background:#b91c1c;color:#fff;padding:10px 16px;
+        border-radius:6px;text-align:center;font-size:14px;font-weight:600;
+        margin-bottom:16px;line-height:1.4;">
+        ⚠️ PORTFOLIO DEMO — This is a student engineering project, not a
+        real crisis-support service. It has not been clinically or legally
+        reviewed. If you are in crisis, please contact a real local
+        emergency service or crisis line instead.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption(crisis_resources("IN"))
+
+
+# ---------------------------------------------------------------------------
+# Auth pages
+# ---------------------------------------------------------------------------
+
+def page_login_register():
+    st.title("🌱 Sanjeevani")
+    st.write("A space to reflect. Not a substitute for therapy or medical care.")
+
+    tab_login, tab_register = st.tabs(["Sign in", "Create account"])
+
+    with tab_login:
+        with st.form("login_form"):
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_password")
+            submitted = st.form_submit_button("Sign in")
+        if submitted:
+            db = get_db()
+            try:
+                email_norm = email.strip().lower()
+                if not rate_limiter.allow(f"login:{email_norm}"):
+                    st.error("Too many login attempts. Please wait a moment and try again.")
+                    return
+                user = db.query(models.User).filter(models.User.email == email_norm).first()
+                now = dt.datetime.now(dt.timezone.utc)
+                if not user or user.deleted_at is not None:
+                    st.error("Incorrect email or password.")
+                    return
+                if user.locked_until and user.locked_until > now:
+                    st.error("Account temporarily locked. Please try again later.")
+                    return
+                if not verify_password(password, user.password_hash):
+                    user.failed_login_count = (user.failed_login_count or 0) + 1
+                    if user.failed_login_count >= 5:
+                        user.locked_until = now + dt.timedelta(minutes=15)
+                        user.failed_login_count = 0
+                    db.commit()
+                    st.error("Incorrect email or password.")
+                    return
+                user.failed_login_count = 0
+                user.locked_until = None
+                db.commit()
+                st.session_state["user_id"] = str(user.id)
+                st.rerun()
+            finally:
+                db.close()
+
+    with tab_register:
+        with st.form("register_form"):
+            name = st.text_input("Name", key="reg_name")
+            email_r = st.text_input("Email", key="reg_email")
+            password_r = st.text_input(
+                "Password", type="password", key="reg_password",
+                help="Use at least 12 characters.",
+            )
+            submitted_r = st.form_submit_button("Create account")
+        if submitted_r:
+            db = get_db()
+            try:
+                if password_r.strip() != password_r or len(password_r) < 12:
+                    st.error("Password must be at least 12 characters, with no leading/trailing spaces.")
+                    return
+                email_norm = email_r.strip().lower()
+                if not email_norm or "@" not in email_norm:
+                    st.error("Please enter a valid email address.")
+                    return
+                if not rate_limiter.allow(f"register:{email_norm}"):
+                    st.error("Too many attempts. Please try again later.")
+                    return
+                if db.query(models.User).filter(models.User.email == email_norm).first():
+                    st.error("Email already registered. Try signing in instead.")
+                    return
+                user = models.User(
+                    email=email_norm,
+                    password_hash=hash_password(password_r),
+                    display_name=name.strip() or None,
+                    # Demo build: no email-delivery provider configured, so
+                    # accounts are auto-verified. Do not do this in a real
+                    # deployment — see backend/app/routers/auth.py for the
+                    # real verification flow.
+                    email_verified_at=dt.datetime.now(dt.timezone.utc),
+                )
+                db.add(user)
+                db.flush()
+                db.add(models.UserPreferences(user_id=user.id))
+                db.add(models.ConsentRecord(
+                    user_id=user.id, consent_type="terms",
+                    version=os.getenv("SANJEEVANI_TERMS_VERSION", "1.0"), granted=True,
+                ))
+                db.commit()
+                st.success("Account created — you can sign in now.")
+            finally:
+                db.close()
+
+
+# ---------------------------------------------------------------------------
+# Chat page
+# ---------------------------------------------------------------------------
+
+def page_chat(db, user):
+    st.subheader("Chat")
+    st.caption("Start whenever you're ready. There's no wrong way to begin.")
+
+    if "chat_id" not in st.session_state:
+        st.session_state["chat_id"] = None
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    for msg in st.session_state["chat_history"]:
+        with st.chat_message(msg["sender"]):
+            st.write(msg["text"])
+            if msg.get("resources_text"):
+                st.warning(msg["resources_text"])
+
+    prompt = st.chat_input("Type how you're feeling...")
+    if not prompt:
+        return
+
+    cipher = get_cipher(db, user)
+
+    if not rate_limiter.allow(f"chat:{user.id}"):
+        st.error("Too many messages. Please wait a moment and try again.")
+        return
+
+    chat_id = st.session_state["chat_id"]
+    chat = db.query(models.Chat).filter(models.Chat.id == chat_id, models.Chat.user_id == user.id).first() if chat_id else None
+    if not chat:
+        chat = models.Chat(user_id=user.id)
+        db.add(chat)
+        db.flush()
+        st.session_state["chat_id"] = str(chat.id)
+
+    user_msg = models.Message(chat_id=chat.id, sender="user", content_encrypted=cipher.encrypt(prompt))
+    db.add(user_msg)
+    db.flush()
+
+    emotion_signal = emotion_agent.analyze(prompt)
+
+    recent = (
+        db.query(models.SafetyAssessment.concern_level)
+        .filter(models.SafetyAssessment.user_id == user.id)
+        .order_by(models.SafetyAssessment.created_at.desc())
+        .limit(10).all()
+    )
+    recent_levels = [r[0] for r in reversed(recent)]
+
+    active_alert = (
+        db.query(models.Alert)
+        .join(models.SafetyAssessment, models.Alert.safety_assessment_id == models.SafetyAssessment.id)
+        .filter(
+            models.SafetyAssessment.user_id == user.id,
+            models.SafetyAssessment.concern_level.in_(["high", "immediate"]),
+            models.Alert.status.in_(["pending_review", "acknowledged"]),
+        )
+        .order_by(models.SafetyAssessment.created_at.desc())
+        .first()
+    )
+    active_floor = None
+    if active_alert:
+        active_floor = db.query(models.SafetyAssessment.concern_level).filter(
+            models.SafetyAssessment.id == active_alert.safety_assessment_id
+        ).scalar()
+
+    assessment = safety_agent.assess(prompt, emotion_signal, recent_levels, active_floor)
+    directive = decision_router(assessment)
+
+    safety_record = models.SafetyAssessment(
+        user_id=user.id, message_id=user_msg.id,
+        concern_level=assessment.concern_level,
+        contributing_factors=assessment.contributing_factors,
+        explanation=assessment.explanation, confidence=assessment.confidence,
+    )
+    db.add(safety_record)
+    db.flush()
+
+    if directive["create_alert"]:
+        alert = models.Alert(safety_assessment_id=safety_record.id, status="pending_review")
+        db.add(alert)
+        db.flush()
+        _log_audit(
+            db, user.id, "safety_alert_created", "safety_assessment", safety_record.id,
+            {"concern_level": assessment.concern_level, "escalation": directive["human_escalation"]},
+        )
+
+    ai_reply = conversation_agent.generate_response(prompt, directive, assessment.concern_level)
+
+    ai_msg = models.Message(chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"]))
+    db.add(ai_msg)
+    db.flush()
+    db.commit()
+
+    st.session_state["chat_history"].append({"sender": "user", "text": prompt})
+    st.session_state["chat_history"].append({
+        "sender": "assistant", "text": ai_reply["text"],
+        "resources_text": ai_reply["resources_text"],
+    })
+    st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Mood page
+# ---------------------------------------------------------------------------
+
+def page_mood(db, user):
+    st.subheader("Mood")
+    with st.form("mood_form"):
+        score = st.slider("How are you feeling right now? (1 = very low, 10 = very good)", 1, 10, 5)
+        tags = st.multiselect("Tags (optional)", ["anxious", "tired", "calm", "stressed", "hopeful", "sad", "grateful", "overwhelmed"])
+        note = st.text_area("Note (optional, private and encrypted)")
+        submitted = st.form_submit_button("Log mood")
+    if submitted:
+        cipher = get_cipher(db, user)
+        entry = models.MoodEntry(
+            user_id=user.id, mood_score=score, tags=tags,
+            note_encrypted=cipher.encrypt(note) if note else None,
+        )
+        db.add(entry)
+        db.commit()
+        st.success("Mood logged.")
+
+    st.divider()
+    st.write("**Recent entries**")
+    entries = (
+        db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id)
+        .order_by(models.MoodEntry.logged_at.desc()).limit(20).all()
+    )
+    if not entries:
+        st.caption("No mood entries yet.")
+    for e in entries:
+        st.write(f"**{e.mood_score}/10** — {', '.join(e.tags or [])} · {e.logged_at.strftime('%b %d, %Y %H:%M')}")
+
+
+# ---------------------------------------------------------------------------
+# Journal page
+# ---------------------------------------------------------------------------
+
+def page_journal(db, user):
+    st.subheader("Journal")
+    cipher = get_cipher(db, user)
+    with st.form("journal_form"):
+        content = st.text_area("What's on your mind?", height=150)
+        submitted = st.form_submit_button("Save entry")
+    if submitted and content.strip():
+        entry = models.Journal(user_id=user.id, content_encrypted=cipher.encrypt(content))
+        db.add(entry)
+        db.commit()
+        st.success("Journal entry saved.")
+
+    st.divider()
+    entries = (
+        db.query(models.Journal).filter(models.Journal.user_id == user.id)
+        .order_by(models.Journal.created_at.desc()).limit(50).all()
+    )
+    if not entries:
+        st.caption("No journal entries yet.")
+    for e in entries:
+        with st.expander(e.created_at.strftime("%b %d, %Y %H:%M")):
+            st.write(cipher.decrypt(e.content_encrypted))
+            if st.button("Delete", key=f"del_journal_{e.id}"):
+                db.delete(e)
+                db.commit()
+                st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Weekly summary page
+# ---------------------------------------------------------------------------
+
+def page_summary(db, user):
+    st.subheader("Weekly summary")
+    end = dt.datetime.now(dt.timezone.utc)
+    start = end - dt.timedelta(days=7)
+    moods = db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id, models.MoodEntry.logged_at >= start).all()
+    journals = db.query(models.Journal).filter(models.Journal.user_id == user.id, models.Journal.created_at >= start).count()
+    chats = db.query(models.Chat).filter(models.Chat.user_id == user.id, models.Chat.started_at >= start).count()
+    elevated = db.query(models.SafetyAssessment).filter(
+        models.SafetyAssessment.user_id == user.id,
+        models.SafetyAssessment.created_at >= start,
+        models.SafetyAssessment.concern_level.in_(["moderate", "high", "immediate"]),
+    ).count()
+    avg = round(mean([m.mood_score for m in moods]), 2) if moods else None
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Avg mood", f"{avg}/10" if avg is not None else "—")
+    col2.metric("Journal entries", journals)
+    col3.metric("Chats", chats)
+    if elevated:
+        st.warning(f"{elevated} elevated wellbeing check-in(s) this week — consider reviewing how you're feeling.")
+    if not (moods or journals or chats):
+        st.caption("No activity recorded this week. A small check-in can be a useful place to start.")
+
+
+# ---------------------------------------------------------------------------
+# Privacy dashboard
+# ---------------------------------------------------------------------------
+
+def page_privacy(db, user):
+    st.subheader("Privacy & data")
+    prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
+    if not prefs:
+        prefs = models.UserPreferences(user_id=user.id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+
+    with st.form("prefs_form"):
+        ltm = st.checkbox("Long-term memory", value=prefs.long_term_memory_enabled)
+        voice = st.checkbox("Voice emotion analysis", value=prefs.voice_emotion_enabled)
+        wearable = st.checkbox("Wearable integration", value=prefs.wearable_integration_enabled)
+        research = st.checkbox("Research participation (opt-in)", value=prefs.research_participation_opt_in)
+        contacts_enabled = st.checkbox("Emergency contacts enabled", value=prefs.emergency_contacts_enabled)
+        submitted = st.form_submit_button("Save preferences")
+    if submitted:
+        changes = {
+            "long_term_memory_enabled": ltm, "voice_emotion_enabled": voice,
+            "wearable_integration_enabled": wearable, "research_participation_opt_in": research,
+            "emergency_contacts_enabled": contacts_enabled,
+        }
+        for k, v in changes.items():
+            setattr(prefs, k, v)
+        _log_audit(db, user.id, "consent_preferences_updated", "user_preferences", user.id, changes)
+        db.commit()
+        st.success("Preferences saved.")
+
+    st.divider()
+    if st.button("Export my data (JSON)"):
+        cipher = get_cipher(db, user)
+        moods = db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id).all()
+        journals = db.query(models.Journal).filter(models.Journal.user_id == user.id).all()
+        export = {
+            "user": {"id": str(user.id), "email": user.email, "display_name": user.display_name},
+            "mood_entries": [{"mood_score": m.mood_score, "tags": m.tags, "logged_at": m.logged_at.isoformat()} for m in moods],
+            "journals": [{"content": cipher.decrypt(j.content_encrypted), "created_at": j.created_at.isoformat()} for j in journals],
+        }
+        _log_audit(db, user.id, "data_export_requested", "user", user.id, {})
+        db.commit()
+        st.json(export)
+
+    st.divider()
+    st.write("**Delete account**")
+    with st.form("delete_form"):
+        pw = st.text_input("Confirm your password", type="password")
+        confirm = st.checkbox("I understand this cannot be undone")
+        del_submit = st.form_submit_button("Delete my account", type="primary")
+    if del_submit:
+        if not verify_password(pw, user.password_hash):
+            st.error("Incorrect password.")
+        elif not confirm:
+            st.error("Please confirm you understand this is permanent.")
+        else:
+            now = dt.datetime.now(dt.timezone.utc)
+            user.deleted_at = now
+            key_row = db.query(models.UserEncryptionKey).filter(models.UserEncryptionKey.user_id == user.id).first()
+            if key_row:
+                key_row.revoked_at = now
+            _log_audit(db, user.id, "account_deletion_requested", "user", user.id, {"confirmation": True})
+            db.commit()
+            st.session_state.clear()
+            st.success("Account deleted.")
+            st.rerun()
+
+    st.divider()
+    if user.role == "user" and os.getenv("SANJEEVANI_DEMO_MODE", "false").lower() in {"1", "true", "yes"}:
+        st.caption("Demo-only: grant yourself reviewer access to try the reviewer dashboard.")
+        if st.button("Grant myself reviewer access (demo)"):
+            user.role = "reviewer"
+            db.commit()
+            st.success("You now have reviewer access. Reload the sidebar to see it.")
+            st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Emergency contacts
+# ---------------------------------------------------------------------------
+
+def _mask(v):
+    return ("*" * max(0, len(v) - 4) + v[-4:]) if v else ""
+
+
+def page_contacts(db, user):
+    st.subheader("Emergency contacts")
+    cipher = get_cipher(db, user)
+
+    with st.form("contact_form"):
+        name = st.text_input("Name")
+        phone = st.text_input("Phone")
+        email_c = st.text_input("Email (optional)")
+        relationship = st.text_input("Relationship (optional)")
+        consent = st.checkbox("This person has consented to be listed as my emergency contact")
+        submitted = st.form_submit_button("Add contact")
+    if submitted:
+        if not consent:
+            st.error("Explicit consent is required before an emergency contact can be activated.")
+        elif not name.strip() or not phone.strip():
+            st.error("Name and phone are required.")
+        else:
+            c = models.EmergencyContact(
+                user_id=user.id, name=name.strip(), phone_encrypted=cipher.encrypt(phone.strip()),
+                email_encrypted=cipher.encrypt(email_c.strip()) if email_c.strip() else None,
+                relationship_label=relationship.strip() or None,
+                consent_given_at=dt.datetime.now(dt.timezone.utc), active=True,
+            )
+            db.add(c)
+            db.commit()
+            st.success("Contact added.")
+            st.rerun()
+
+    st.divider()
+    contacts = db.query(models.EmergencyContact).filter(
+        models.EmergencyContact.user_id == user.id, models.EmergencyContact.active.is_(True)
+    ).all()
+    if not contacts:
+        st.caption("No emergency contacts added yet.")
+    for c in contacts:
+        col1, col2 = st.columns([4, 1])
+        col1.write(f"**{c.name}** ({c.relationship_label or 'unspecified'}) — {_mask(cipher.decrypt(c.phone_encrypted))}")
+        if col2.button("Remove", key=f"rm_contact_{c.id}"):
+            c.active = False
+            db.commit()
+            st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Reviewer dashboard
+# ---------------------------------------------------------------------------
+
+def page_reviewer(db, user):
+    st.subheader("Reviewer dashboard")
+    st.caption("Visible only to accounts with reviewer / super_admin role.")
+
+    status_filter = st.selectbox("Status", ["pending_review", "acknowledged", "resolved", None], format_func=lambda s: s or "All")
+    q = (
+        db.query(models.Alert, models.SafetyAssessment)
+        .join(models.SafetyAssessment, models.Alert.safety_assessment_id == models.SafetyAssessment.id)
+    )
+    if status_filter:
+        q = q.filter(models.Alert.status == status_filter)
+    rows = q.order_by(models.SafetyAssessment.created_at.desc()).limit(100).all()
+
+    if not rows:
+        st.caption("No alerts matching this filter.")
+    for alert, assessment in rows:
+        with st.expander(f"[{assessment.concern_level.upper()}] {assessment.created_at.strftime('%b %d, %H:%M')} — {alert.status}"):
+            st.write(assessment.explanation)
+            st.write("Contributing factors:", ", ".join(assessment.contributing_factors or []))
+            if alert.status == "pending_review":
+                if st.button("Acknowledge", key=f"ack_{alert.id}"):
+                    now = dt.datetime.now(dt.timezone.utc)
+                    alert.status = "acknowledged"
+                    alert.assigned_reviewer_id = user.id
+                    alert.acknowledged_at = now
+                    alert.last_escalated_at = now
+                    _log_audit(db, user.id, "alert_acknowledged", "alert", alert.id, {"reviewer_id": str(user.id)})
+                    db.commit()
+                    st.rerun()
+            elif alert.status == "acknowledged":
+                notes = st.text_area("Resolution notes (required)", key=f"notes_{alert.id}")
+                if st.button("Resolve", key=f"resolve_{alert.id}"):
+                    if not notes.strip():
+                        st.error("Resolution notes are required for auditability.")
+                    else:
+                        cipher = get_cipher(db, user)
+                        now = dt.datetime.now(dt.timezone.utc)
+                        alert.status = "resolved"
+                        alert.assigned_reviewer_id = user.id
+                        alert.resolved_at = now
+                        alert.resolution_notes_encrypted = cipher.encrypt(notes.strip())
+                        _log_audit(db, user.id, "alert_resolved", "alert", alert.id, {"reviewer_id": str(user.id)})
+                        db.commit()
+                        st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# System status / diagnostics page
+#
+# This is the "self-healing" feature: not autonomous code-modification
+# (that's not something any responsible system should attempt on itself,
+# especially not a mental-health app), but the standard production
+# resilience pattern — automatic retries on transient failures (see
+# llm_client.py's call_llm), graceful degradation instead of a hard crash
+# (see run_page_safely below), and a visible diagnostics page so failures
+# are transparent instead of silent. Real systems (Netflix's Hystrix,
+# resilience4j, etc.) call this general approach "circuit breaking" /
+# "graceful degradation" — this page makes that behavior visible.
+# ---------------------------------------------------------------------------
+
+def page_system_status(db):
+    st.subheader("System status")
+    st.caption("Live self-diagnostics: what's working, what recovered automatically, and what needs attention.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        try:
+            db.execute(__import__("sqlalchemy").text("SELECT 1"))
+            st.success("Database: reachable")
+        except Exception as exc:
+            st.error(f"Database: unreachable ({exc})")
+            record_incident("db_healthcheck_failed", str(exc))
+    with col2:
+        has_key = bool(os.getenv("GROQ_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+        st.success("LLM API key: configured") if has_key else st.warning("LLM API key: not set — chat will use safe fallback replies")
+
+    st.divider()
+    st.write("**Recent incidents & automatic recoveries**")
+    st.caption("Retried LLM calls, caught page errors, and health-check failures from this session. Resets when the app restarts.")
+    incidents = recent_incidents()
+    if not incidents:
+        st.caption("No incidents recorded since this app process started. ✅")
+    for inc in incidents:
+        ts = inc["timestamp"].split("T")[1][:8]
+        st.text(f"{ts}  [{inc['kind']}]  {inc['detail']}")
+
+
+def run_page_safely(page_fn, *args):
+    """Error boundary: a bug in one page must not take down the whole app
+    for the user's whole session. Catches, logs, and offers a retry instead
+    of Streamlit's default full-stack-trace crash screen."""
+    try:
+        page_fn(*args)
+    except Exception as exc:
+        logger.exception("Page crashed: %s", page_fn.__name__)
+        record_incident("page_error", f"{page_fn.__name__}: {exc}")
+        st.error(
+            "Something went wrong loading this page. It's been logged — "
+            "you can check **System status** in the sidebar for details, "
+            "or try again below."
+        )
+        if st.button("Try again"):
+            st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Main app / navigation
+# ---------------------------------------------------------------------------
+
+def main():
+    render_banner()
+
+    if "user_id" not in st.session_state:
+        run_page_safely(page_login_register)
+        return
+
+    db = get_db()
+    try:
+        user = db.query(models.User).filter(
+            models.User.id == st.session_state["user_id"], models.User.deleted_at.is_(None)
+        ).first()
+        if not user:
+            st.session_state.clear()
+            st.rerun()
+            return
+
+        with st.sidebar:
+            st.write(f"Signed in as **{user.display_name or user.email}**")
+            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Privacy & data", "Emergency contacts"]
+            if user.role in ("reviewer", "super_admin"):
+                pages.append("Reviewer dashboard")
+            pages.append("System status")
+            choice = st.radio("Navigate", pages, label_visibility="collapsed")
+            st.divider()
+            if st.button("Sign out"):
+                st.session_state.clear()
+                st.rerun()
+
+        if choice == "Chat":
+            run_page_safely(page_chat, db, user)
+        elif choice == "Mood":
+            run_page_safely(page_mood, db, user)
+        elif choice == "Journal":
+            run_page_safely(page_journal, db, user)
+        elif choice == "Weekly summary":
+            run_page_safely(page_summary, db, user)
+        elif choice == "Privacy & data":
+            run_page_safely(page_privacy, db, user)
+        elif choice == "Emergency contacts":
+            run_page_safely(page_contacts, db, user)
+        elif choice == "Reviewer dashboard":
+            run_page_safely(page_reviewer, db, user)
+        elif choice == "System status":
+            run_page_safely(page_system_status, db)
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()
