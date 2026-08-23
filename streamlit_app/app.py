@@ -596,7 +596,10 @@ def page_system_status(db):
             record_incident("db_healthcheck_failed", str(exc))
     with col2:
         has_key = bool(os.getenv("GROQ_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
-        st.success("LLM API key: configured") if has_key else st.warning("LLM API key: not set")
+        if has_key:
+            st.success("LLM API key: configured")
+        else:
+            st.warning("LLM API key: not set")
 
     st.divider()
     st.write("**Recent incidents & automatic recoveries**")
