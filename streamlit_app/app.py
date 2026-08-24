@@ -589,7 +589,8 @@ def page_system_status(db):
     col1, col2 = st.columns(2)
     with col1:
         try:
-            result = db.execute(__import__("sqlalchemy").text("SELECT 1")); result.fetchone()
+            result = db.execute(__import__("sqlalchemy").text("SELECT 1"))
+            result.fetchone()
             st.success("Database: reachable")
         except Exception as exc:
             st.error(f"Database: unreachable ({exc})")
@@ -599,7 +600,7 @@ def page_system_status(db):
         if has_key:
             st.success("LLM API key: configured")
         else:
-            st.warning("LLM API key: not set")
+            st.warning("LLM API key: not set — chat will use safe fallback replies")
 
     st.divider()
     st.write("**Recent incidents & automatic recoveries**")
@@ -630,38 +631,139 @@ def run_page_safely(page_fn, *args):
             st.rerun()
 
 
+def page_intro():
+    """Branded intro: mandatory 10-second video, then a Start button.
+    No skip — the Start button only appears once the video's runtime has
+    elapsed (tracked server-side via streamlit_autorefresh, not by trusting
+    the browser to tell us the video finished)."""
+    import base64
+    import time as _time
+    from streamlit_autorefresh import st_autorefresh
+
+    st.markdown(
+        "<h1 style='text-align:center;color:#2E3A32;margin-top:8px;'>🌱 Sanjeevani</h1>",
+        unsafe_allow_html=True,
+    )
+
+    video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "sanjeevani_intro.mp4")
+    if "intro_started_at" not in st.session_state:
+        st.session_state["intro_started_at"] = _time.time()
+
+    elapsed = _time.time() - st.session_state["intro_started_at"]
+    VIDEO_DURATION = 10.2  # slight buffer over the actual 10.0s clip
+
+    if os.path.exists(video_path) and elapsed < VIDEO_DURATION:
+        with open(video_path, "rb") as f:
+            video_b64 = base64.b64encode(f.read()).decode()
+        st.components.v1.html(
+            f"""
+            <div id="sanjeevani-intro-wrap" style="display:flex;justify-content:center;
+                        align-items:center;width:100%;background:#F6F5F1;padding:8px 0;">
+              <div style="width:100%;max-width:720px;position:relative;">
+                <video id="sanjeevani-intro-video" autoplay playsinline
+                       style="width:100%;aspect-ratio:16/9;height:auto;border-radius:16px;
+                              display:block;object-fit:contain;background:#000;">
+                  <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
+                </video>
+                <button id="unmute-btn" onclick="
+                    var v=document.getElementById('sanjeevani-intro-video');
+                    v.muted=false; v.play(); this.style.display='none';
+                  " style="position:absolute;bottom:16px;right:16px;display:none;
+                           background:#6E8B7A;color:white;border:none;border-radius:999px;
+                           padding:10px 16px;font-size:14px;cursor:pointer;">
+                  🔊 Tap for sound
+                </button>
+              </div>
+            </div>
+            <script>
+              var v = document.getElementById('sanjeevani-intro-video');
+              var btn = document.getElementById('unmute-btn');
+              var p = v.play();
+              if (p !== undefined) {{
+                p.catch(function() {{
+                  v.muted = true;
+                  v.play();
+                  btn.style.display = 'block';
+                }});
+              }}
+
+              // Responsive iframe height: report actual rendered content
+              // height to the parent Streamlit frame, on load, on video
+              // metadata load, and on any resize/orientation change — so
+              // phone/tablet/desktop/rotation all get a correctly sized
+              // container instead of a hardcoded pixel height.
+              function reportHeight() {{
+                var h = document.getElementById('sanjeevani-intro-wrap').offsetHeight;
+                window.parent.postMessage({{type: "streamlit:setFrameHeight", height: h + 24}}, "*");
+              }}
+              window.addEventListener('resize', reportHeight);
+              v.addEventListener('loadedmetadata', reportHeight);
+              window.addEventListener('load', reportHeight);
+              setTimeout(reportHeight, 100);
+              setTimeout(reportHeight, 500);
+            </script>
+            """,
+            height=420,
+        )
+        # Ticks the page forward until the video's runtime has elapsed —
+        # not a full browser reload, so session_state (and the video
+        # playback itself) isn't disturbed.
+        st_autorefresh(interval=800, limit=20, key="intro_wait")
+        st.markdown(
+            "<p style='text-align:center;color:#8A968D;'>Playing introduction…</p>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            "<p style='text-align:center;color:#5A6B5E;font-size:18px;'>"
+            "A calm, private space to reflect.</p>",
+            unsafe_allow_html=True,
+        )
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            if st.button("START", use_container_width=True, type="primary"):
+                st.session_state["onboarding_stage"] = "auth_choice"
+                st.rerun()
+
+
+def page_auth_choice():
+    """Stage 2 of onboarding: choose Login or Register. Both lead into the
+    existing, unmodified authentication screen (page_login_register)."""
+    st.markdown(
+        "<h1 style='text-align:center;color:#2E3A32;margin-top:24px;'>🌱 Sanjeevani</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align:center;color:#5A6B5E;font-size:18px;margin-bottom:32px;'>"
+        "How would you like to continue?</p>",
+        unsafe_allow_html=True,
+    )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("LOGIN", use_container_width=True, type="primary"):
+            st.session_state["onboarding_stage"] = "auth"
+            st.rerun()
+        st.write("")
+        if st.button("REGISTER", use_container_width=True):
+            st.session_state["onboarding_stage"] = "auth"
+            st.rerun()
+
+
 # ---------------------------------------------------------------------------
 # Main app / navigation
 # ---------------------------------------------------------------------------
 
-def render_brand_header():
-    logo_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "assets",
-        "sanjeevani_logo.png",
-    )
-
-    col1, col2 = st.columns([1, 6])
-
-    with col1:
-        st.image(logo_path, width=75)
-
-    with col2:
-        st.markdown(
-            "<h1 style='margin:8px 0 0 0;'>Sanjeevani</h1>"
-            "<p style='margin:0;color:#5b6979;'>"
-            "AI-powered emotional wellness & safety-aware support"
-            "</p>",
-            unsafe_allow_html=True,
-        )
-
-
 def main():
-    render_brand_header()
     render_banner()
 
     if "user_id" not in st.session_state:
-        run_page_safely(page_login_register)
+        st.session_state.setdefault("onboarding_stage", "intro")
+        if st.session_state["onboarding_stage"] == "intro":
+            run_page_safely(page_intro)
+        elif st.session_state["onboarding_stage"] == "auth_choice":
+            run_page_safely(page_auth_choice)
+        else:
+            run_page_safely(page_login_register)
         return
 
     db = get_db()

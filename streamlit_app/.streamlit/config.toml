@@ -1,2 +1,8 @@
 [runner]
+# Disabled after a bug where a bare `db.execute(...)` statement (its return
+# value not assigned to anything) got auto-rendered by Streamlit's "magic"
+# feature, which then crashed trying to display a raw SQLAlchemy cursor
+# result as a dataframe. Explicit st.write()/st.success()/etc. calls are
+# used everywhere in this app instead, so disabling magic costs nothing
+# and closes off this whole class of surprise bug.
 magicEnabled = false
