@@ -22,3 +22,4 @@ htmlcov/
 .idea/
 backups/
 restore_drill/
+.backup/
