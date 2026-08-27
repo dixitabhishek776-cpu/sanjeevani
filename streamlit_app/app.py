@@ -18,6 +18,7 @@ import logging
 from statistics import mean
 
 import streamlit as st
+import pandas as pd
 
 # --- Make the existing backend/app package importable ---
 BACKEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend")
@@ -317,15 +318,31 @@ def page_mood(db, user):
         st.success("Mood logged.")
 
     st.divider()
-    st.write("**Recent entries**")
     entries = (
         db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id)
-        .order_by(models.MoodEntry.logged_at.desc()).limit(20).all()
+        .order_by(models.MoodEntry.logged_at.desc()).limit(30).all()
     )
     if not entries:
-        st.caption("No mood entries yet.")
-    for e in entries:
-        st.write(f"**{e.mood_score}/10** — {', '.join(e.tags or [])} · {e.logged_at.strftime('%b %d, %Y %H:%M')}")
+        st.caption("No mood entries yet — log your first one above to start seeing your trend.")
+    else:
+        st.write("**Your mood trend**")
+        chart_data = pd.DataFrame(
+            {"Mood": [e.mood_score for e in reversed(entries)]},
+            index=[e.logged_at.strftime("%b %d, %H:%M") for e in reversed(entries)],
+        )
+        st.line_chart(chart_data, y="Mood", height=250)
+
+        recent_scores = [e.mood_score for e in entries[:7]]
+        if len(recent_scores) >= 2:
+            avg_recent = sum(recent_scores) / len(recent_scores)
+            trend = recent_scores[0] - recent_scores[-1]
+            col1, col2 = st.columns(2)
+            col1.metric("Avg (last 7 entries)", f"{avg_recent:.1f}/10")
+            col2.metric("Trend", f"{'+' if trend >= 0 else ''}{trend}", delta=trend)
+
+        st.write("**Recent entries**")
+        for e in entries:
+            st.write(f"**{e.mood_score}/10** — {', '.join(e.tags or [])} · {e.logged_at.strftime('%b %d, %Y %H:%M')}")
 
 
 # ---------------------------------------------------------------------------
