@@ -1,0 +1,13 @@
+{
+  "name": "Sanjeevani — Digital Health Assistant",
+  "short_name": "Sanjeevani",
+  "description": "A calm, private space to reflect. AI-powered mental wellness companion.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F6F5F1",
+  "theme_color": "#6E8B7A",
+  "icons": [
+    { "src": "app/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "app/static/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
