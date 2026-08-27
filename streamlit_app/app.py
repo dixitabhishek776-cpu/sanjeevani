@@ -14,6 +14,8 @@ see the banner rendered on every page.
 import os
 import sys
 import datetime as dt
+import hashlib
+import secrets
 import logging
 from statistics import mean
 
@@ -28,6 +30,7 @@ if BACKEND_DIR not in sys.path:
 from app import models  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 from app.core.auth import hash_password, verify_password  # noqa: E402
+from app import email_service  # noqa: E402
 from app.core.crypto import generate_dek, wrap_dek, unwrap_dek, UserCipher  # noqa: E402
 from app.agents.emotion_agent import EmotionAnalysisAgent  # noqa: E402
 from app.agents.safety_agent import SafetyIntelligenceAgent, decision_router  # noqa: E402
@@ -82,6 +85,17 @@ def _log_audit(db, actor_id, action, target_type, target_id, metadata):
 # ---------------------------------------------------------------------------
 
 def render_banner():
+    st.markdown(
+        """
+        <style>
+        /* Hide the small anchor-link icon Streamlit auto-adds next to every
+           header/subheader — on mobile, tapping it opens the browser's
+           "copy link / download link" menu instead of being useful. */
+        [data-testid="stHeaderActionElements"] { display: none !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown(
         """
         <div style="background:#b91c1c;color:#fff;padding:10px 16px;
@@ -173,11 +187,7 @@ def page_login_register():
                     email=email_norm,
                     password_hash=hash_password(password_r),
                     display_name=name.strip() or None,
-                    # Demo build: no email-delivery provider configured, so
-                    # accounts are auto-verified. Do not do this in a real
-                    # deployment — see backend/app/routers/auth.py for the
-                    # real verification flow.
-                    email_verified_at=dt.datetime.now(dt.timezone.utc),
+                    email_verified_at=None,
                 )
                 db.add(user)
                 db.flush()
@@ -186,8 +196,28 @@ def page_login_register():
                     user_id=user.id, consent_type="terms",
                     version=os.getenv("SANJEEVANI_TERMS_VERSION", "1.0"), granted=True,
                 ))
+                verify_raw = secrets.token_urlsafe(48)
+                db.add(models.VerificationToken(
+                    user_id=user.id,
+                    token_hash=hashlib.sha256(verify_raw.encode()).hexdigest(),
+                    expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=24),
+                ))
                 db.commit()
-                st.success("Account created — you can sign in now.")
+                app_url = os.getenv("SANJEEVANI_APP_URL", "https://sanjeevani-w3yji9hmnzsljkkqtkrxpe.streamlit.app")
+                verify_link = f"{app_url}/?verify={verify_raw}"
+                email_sent = email_service.send_verification_email(email_norm, verify_link)
+                if email_sent:
+                    st.success("Account created! Check your email for a verification link.")
+                else:
+                    # Demo fallback: no email provider configured (or send
+                    # failed) — don't lock the user out of a demo, but be
+                    # honest that verification wasn't actually completed.
+                    st.success("Account created!")
+                    st.info(
+                        "Email verification isn't configured on this deployment, "
+                        "so your account starts unverified — you can still sign "
+                        "in and use the app."
+                    )
             finally:
                 db.close()
 
@@ -872,9 +902,40 @@ def inject_pwa_support():
     )
 
 
+def handle_email_verification_link():
+    """If the app was opened via a verification-email link (?verify=<token>),
+    check the token and mark the account verified. Runs before anything
+    else so it works whether or not the person is currently logged in."""
+    token = st.query_params.get("verify")
+    if not token:
+        return
+    db = get_db()
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        row = db.query(models.VerificationToken).filter(
+            models.VerificationToken.token_hash == token_hash
+        ).first()
+        now = dt.datetime.now(dt.timezone.utc)
+        if row and row.used_at is None and row.expires_at > now:
+            user = db.query(models.User).filter(models.User.id == row.user_id).first()
+            if user:
+                user.email_verified_at = now
+                row.used_at = now
+                db.commit()
+                st.success("✅ Email verified! You can now sign in.")
+        elif row and row.used_at is not None:
+            st.info("This verification link was already used.")
+        else:
+            st.warning("This verification link is invalid or has expired.")
+    finally:
+        db.close()
+    st.query_params.clear()
+
+
 def main():
     render_banner()
     inject_pwa_support()
+    handle_email_verification_link()
 
     if "user_id" not in st.session_state:
         st.session_state.setdefault("onboarding_stage", "intro")
@@ -895,6 +956,23 @@ def main():
             st.session_state.clear()
             st.rerun()
             return
+
+        if user.email_verified_at is None:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.warning("Your email isn't verified yet.")
+            with col2:
+                if st.button("Resend link"):
+                    verify_raw = secrets.token_urlsafe(48)
+                    db.add(models.VerificationToken(
+                        user_id=user.id,
+                        token_hash=hashlib.sha256(verify_raw.encode()).hexdigest(),
+                        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=24),
+                    ))
+                    db.commit()
+                    app_url = os.getenv("SANJEEVANI_APP_URL", "https://sanjeevani-w3yji9hmnzsljkkqtkrxpe.streamlit.app")
+                    sent = email_service.send_verification_email(user.email, f"{app_url}/?verify={verify_raw}")
+                    st.success("Sent!" if sent else "Email delivery isn't configured on this deployment.")
 
         with st.sidebar:
             st.write(f"Signed in as **{user.display_name or user.email}**")
