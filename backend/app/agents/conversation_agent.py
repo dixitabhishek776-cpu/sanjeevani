@@ -51,11 +51,16 @@ Hard rules, no exceptions:
 
 
 class ConversationAgent:
-    def generate_response(self, message: str, safety_directive: dict, concern_level: str) -> dict:
+    def generate_response(self, message: str, safety_directive: dict, concern_level: str, language: str = "English") -> dict:
         guarded = guard_user_text(message)
         directive_note = ""
+        if language and language != "English":
+            directive_note += (
+                f"\n\nRespond in {language}. Keep the same warm, calm tone; "
+                f"translate naturally rather than word-for-word."
+            )
         if safety_directive.get("show_resources_first"):
-            directive_note = (
+            directive_note += (
                 "\n\nSAFETY DIRECTIVE: Crisis resources are being shown to the "
                 "user alongside your reply. Keep your response calm, validating, "
                 "and focused on the fact that they reached out — do not try to "
@@ -63,7 +68,7 @@ class ConversationAgent:
                 "verbatim, that's handled separately."
             )
         elif concern_level == "moderate":
-            directive_note = (
+            directive_note += (
                 "\n\nSAFETY DIRECTIVE: This message shows some emotional "
                 "distress. Respond with grounding, non-judgmental support."
             )
