@@ -324,31 +324,95 @@ def page_mood(db, user):
         st.success("Mood logged.")
 
     st.divider()
+
     entries = (
-        db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id)
-        .order_by(models.MoodEntry.logged_at.desc()).limit(30).all()
+        db.query(models.MoodEntry)
+        .filter(models.MoodEntry.user_id == user.id)
+        .order_by(models.MoodEntry.logged_at.desc())
+        .limit(30)
+        .all()
     )
+
     if not entries:
         st.caption("No mood entries yet — log your first one above to start seeing your trend.")
     else:
-        st.write("**Your mood trend**")
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        today = now.date()
+        start_date = today - timedelta(days=6)
+
+        # Keep only entries from the last 7 calendar days, including today.
+        recent_entries = [
+            e for e in entries
+            if e.logged_at.date() >= start_date
+        ]
+
+        st.write("**Your mood trend — last 7 calendar days**")
+
+        daily_averages = []
+        daily_labels = []
+
+        for offset in range(6, -1, -1):
+            day = today - timedelta(days=offset)
+            day_scores = [
+                e.mood_score for e in recent_entries
+                if e.logged_at.date() == day
+            ]
+
+            if day_scores:
+                daily_avg = sum(day_scores) / len(day_scores)
+                daily_averages.append(daily_avg)
+                daily_labels.append(day.strftime("%b %d"))
+            else:
+                daily_averages.append(float("nan"))
+                daily_labels.append(day.strftime("%b %d"))
+
         chart_data = pd.DataFrame(
-            {"Mood": [e.mood_score for e in reversed(entries)]},
-            index=[e.logged_at.strftime("%b %d, %H:%M") for e in reversed(entries)],
+            {"Daily average": daily_averages},
+            index=daily_labels,
         )
-        st.line_chart(chart_data, y="Mood", height=250)
 
-        recent_scores = [e.mood_score for e in entries[:7]]
-        if len(recent_scores) >= 2:
-            avg_recent = sum(recent_scores) / len(recent_scores)
-            trend = recent_scores[0] - recent_scores[-1]
+        st.line_chart(chart_data, y="Daily average", height=250)
+
+        valid_daily_averages = [
+            value for value in daily_averages
+            if pd.notna(value)
+        ]
+
+        if valid_daily_averages:
+            avg_7_day = sum(valid_daily_averages) / len(valid_daily_averages)
+
+            if len(valid_daily_averages) >= 2:
+                trend = valid_daily_averages[-1] - valid_daily_averages[0]
+            else:
+                trend = 0
+
             col1, col2 = st.columns(2)
-            col1.metric("Avg (last 7 entries)", f"{avg_recent:.1f}/10")
-            col2.metric("Trend", f"{'+' if trend >= 0 else ''}{trend}", delta=trend)
+            col1.metric("7-day average", f"{avg_7_day:.1f}/10")
+            col2.metric(
+                "Trend",
+                f"{'+' if trend >= 0 else ''}{trend:.1f}",
+                delta=f"{trend:+.1f}",
+            )
 
-        st.write("**Recent entries**")
-        for e in entries:
-            st.write(f"**{e.mood_score}/10** — {', '.join(e.tags or [])} · {e.logged_at.strftime('%b %d, %Y %H:%M')}")
+            st.write("**Daily averages**")
+            for label, value in zip(daily_labels, daily_averages):
+                if pd.notna(value):
+                    st.write(f"**{label}** — {value:.1f}/10")
+                else:
+                    st.write(f"**{label}** — No mood logged")
+
+        if recent_entries:
+            st.write("**Mood history — last 7 calendar days**")
+            for e in recent_entries:
+                st.write(
+                    f"**{e.mood_score}/10** — "
+                    f"{', '.join(e.tags or [])} · "
+                    f"{e.logged_at.strftime('%b %d, %Y %H:%M')}"
+                )
+        else:
+            st.caption("No mood entries in the last 7 calendar days.")
 
 
 # ---------------------------------------------------------------------------
