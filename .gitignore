@@ -23,3 +23,4 @@ htmlcov/
 backups/
 restore_drill/
 .backup/
+streamlit_app/app.py.before_7day_mood
