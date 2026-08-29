@@ -12,6 +12,7 @@ This is still a PORTFOLIO DEMO, not a certified mental-health service —
 see the banner rendered on every page.
 """
 import os
+import requests
 import sys
 import datetime as dt
 import hashlib
