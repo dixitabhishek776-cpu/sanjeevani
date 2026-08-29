@@ -1,4 +1,4 @@
-streamlit==1.38.0
+streamlit==1.41.0
 pandas==2.2.2
 streamlit-autorefresh==1.0.1
 sqlalchemy==2.0.35

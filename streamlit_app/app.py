@@ -91,6 +91,33 @@ def safe_decrypt(cipher: UserCipher, ciphertext) -> str:
         return "⚠️ Could not decrypt this entry (it may have been saved under a since-rotated encryption key)."
 
 
+def transcribe_audio(audio_bytes: bytes) -> str:
+    """Voice input: sends recorded audio to Groq's free Whisper endpoint
+    (2,000 requests/day free, no card) and returns the transcribed text.
+    Returns "" on any failure — caller shows a friendly message rather
+    than crashing the chat page over a transcription hiccup."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return ""
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            files={"file": ("audio.wav", audio_bytes, "audio/wav")},
+            data={"model": "whisper-large-v3-turbo"},
+            timeout=20,
+        )
+        if resp.status_code < 300:
+            return resp.json().get("text", "").strip()
+        logging.getLogger("sanjeevani.streamlit").warning(
+            "Transcription failed: %s %s", resp.status_code, resp.text[:200]
+        )
+        return ""
+    except Exception:
+        logging.getLogger("sanjeevani.streamlit").exception("Transcription request failed")
+        return ""
+
+
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
     db.add(models.AuditLog(
         actor_id=actor_id, action=action, target_type=target_type,
@@ -287,7 +314,12 @@ def page_chat(db, user):
 
     LANGUAGES = ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati"]
     st.session_state.setdefault("chat_language", "English")
-    st.selectbox("Language", LANGUAGES, key="chat_language")
+    col_a, col_b = st.columns([2, 1])
+    with col_a:
+        st.selectbox("Language", LANGUAGES, key="chat_language")
+    with col_b:
+        st.session_state.setdefault("speak_replies", False)
+        st.checkbox("🔊 Read replies aloud", key="speak_replies")
 
     if "chat_id" not in st.session_state:
         st.session_state["chat_id"] = None
@@ -300,7 +332,38 @@ def page_chat(db, user):
             if msg.get("resources_text"):
                 st.warning(msg["resources_text"])
 
+    if st.session_state["speak_replies"] and st.session_state["chat_history"]:
+        last = st.session_state["chat_history"][-1]
+        last_idx = len(st.session_state["chat_history"]) - 1
+        if last["sender"] == "assistant" and st.session_state.get("last_spoken_idx") != last_idx:
+            st.session_state["last_spoken_idx"] = last_idx
+            safe_text = last["text"].replace("`", "'").replace("\\", "").replace("</script>", "")
+            st.components.v1.html(
+                f"""
+                <script>
+                  var u = new SpeechSynthesisUtterance({safe_text!r});
+                  window.parent.speechSynthesis.cancel();
+                  window.parent.speechSynthesis.speak(u);
+                </script>
+                """,
+                height=0,
+            )
+
+    audio_value = st.audio_input("Or record your message")
     prompt = st.chat_input("Type how you're feeling...")
+
+    if audio_value is not None:
+        audio_bytes = audio_value.getvalue()
+        audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+        if st.session_state.get("last_audio_hash") != audio_hash:
+            st.session_state["last_audio_hash"] = audio_hash
+            with st.spinner("Transcribing..."):
+                transcribed = transcribe_audio(audio_bytes)
+            if transcribed:
+                prompt = transcribed
+            else:
+                st.warning("Couldn't transcribe that — please try again or type instead.")
+
     if not prompt:
         return
 
