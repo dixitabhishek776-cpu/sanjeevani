@@ -20,6 +20,9 @@ import secrets
 import pyotp
 import qrcode
 import io
+import hmac
+import base64
+from streamlit_cookies_controller import CookieController
 import logging
 from statistics import mean
 
@@ -119,6 +122,75 @@ def transcribe_audio(audio_bytes: bytes) -> str:
         return ""
 
 
+# ---------------------------------------------------------------------------
+# Persistent login ("remember me") via a signed browser cookie
+# ---------------------------------------------------------------------------
+_cookie_controller = None
+
+
+def get_cookie_controller():
+    global _cookie_controller
+    if _cookie_controller is None:
+        _cookie_controller = CookieController()
+    return _cookie_controller
+
+
+def _session_secret() -> bytes:
+    secret = os.getenv("SANJEEVANI_SESSION_SECRET") or os.getenv("SANJEEVANI_MASTER_KEY") or "insecure-dev-secret"
+    return secret.encode()
+
+
+def make_session_token(user_id: str, days: int = 30) -> str:
+    expiry = int((dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=days)).timestamp())
+    payload = f"{user_id}|{expiry}"
+    sig = hmac.new(_session_secret(), payload.encode(), hashlib.sha256).hexdigest()
+    return base64.urlsafe_b64encode(f"{payload}|{sig}".encode()).decode()
+
+
+def verify_session_token(token: str):
+    """Returns the user_id if the token is well-formed, correctly signed,
+    and not expired — otherwise None. Signature check happens with
+    hmac.compare_digest to avoid timing-attack leakage."""
+    try:
+        raw = base64.urlsafe_b64decode(token.encode()).decode()
+        user_id, expiry, sig = raw.split("|")
+        expected_sig = hmac.new(_session_secret(), f"{user_id}|{expiry}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected_sig):
+            return None
+        if int(expiry) < int(dt.datetime.now(dt.timezone.utc).timestamp()):
+            return None
+        return user_id
+    except Exception:
+        return None
+
+
+def set_session_cookie(user_id: str):
+    get_cookie_controller().set(
+        "sanjeevani_session", make_session_token(user_id), max_age=60 * 60 * 24 * 30
+    )
+
+
+def clear_session_cookie():
+    try:
+        get_cookie_controller().remove("sanjeevani_session")
+    except Exception:
+        pass
+
+
+def restore_session_from_cookie():
+    """Runs before the login check — if a valid remember-me cookie exists
+    from a previous visit, this signs the person back in automatically
+    instead of making them log in again after every page refresh."""
+    if "user_id" in st.session_state:
+        return
+    token = get_cookie_controller().get("sanjeevani_session")
+    if not token:
+        return
+    user_id = verify_session_token(token)
+    if user_id:
+        st.session_state["user_id"] = user_id
+
+
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
     db.add(models.AuditLog(
         actor_id=actor_id, action=action, target_type=target_type,
@@ -209,6 +281,7 @@ def page_login_register():
                     st.rerun()
                 else:
                     st.session_state["user_id"] = str(user.id)
+                    set_session_cookie(str(user.id))
                     st.rerun()
             finally:
                 db.close()
@@ -234,6 +307,7 @@ def page_login_register():
                 if secret and pyotp.TOTP(secret).verify(code.strip(), valid_window=1):
                     del st.session_state["pending_2fa_user_id"]
                     st.session_state["user_id"] = uid
+                    set_session_cookie(uid)
                     st.rerun()
                 else:
                     st.error("Incorrect code. Please try again.")
@@ -1110,6 +1184,7 @@ def main():
     render_banner()
     inject_pwa_support()
     handle_email_verification_link()
+    restore_session_from_cookie()
 
     if "user_id" not in st.session_state:
         st.session_state.setdefault("onboarding_stage", "intro")
@@ -1157,6 +1232,7 @@ def main():
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
             st.divider()
             if st.button("Sign out"):
+                clear_session_cookie()
                 st.session_state.clear()
                 st.rerun()
 
