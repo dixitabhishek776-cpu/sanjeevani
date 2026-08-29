@@ -22,7 +22,7 @@ import qrcode
 import io
 import hmac
 import base64
-from streamlit_cookies_controller import CookieController
+from streamlit_cookies_manager import EncryptedCookieManager
 import logging
 from statistics import mean
 
@@ -123,40 +123,36 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Persistent login ("remember me") via a signed browser cookie
+# Persistent login ("remember me") via an encrypted browser cookie
 # ---------------------------------------------------------------------------
-_cookie_controller = None
+_cookies = None
 
 
-def get_cookie_controller():
-    global _cookie_controller
-    if _cookie_controller is None:
-        _cookie_controller = CookieController()
-    return _cookie_controller
-
-
-def _session_secret() -> bytes:
-    secret = os.getenv("SANJEEVANI_SESSION_SECRET") or os.getenv("SANJEEVANI_MASTER_KEY") or "insecure-dev-secret"
-    return secret.encode()
+def get_cookies():
+    """EncryptedCookieManager needs a moment to sync with the browser on
+    first load — .ready() tells us whether that round-trip has completed
+    yet. Until it has, we must not read/write cookies or make login
+    decisions based on them (that's the bug that made session persistence
+    silently fail before): we stop this run and let Streamlit's own
+    automatic rerun (triggered by the component once it's ready) pick
+    things up a moment later."""
+    global _cookies
+    if _cookies is None:
+        secret = os.getenv("SANJEEVANI_SESSION_SECRET") or os.getenv("SANJEEVANI_MASTER_KEY") or "insecure-dev-secret"
+        _cookies = EncryptedCookieManager(prefix="sanjeevani/", password=secret)
+    if not _cookies.ready():
+        st.stop()
+    return _cookies
 
 
 def make_session_token(user_id: str, days: int = 30) -> str:
     expiry = int((dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=days)).timestamp())
-    payload = f"{user_id}|{expiry}"
-    sig = hmac.new(_session_secret(), payload.encode(), hashlib.sha256).hexdigest()
-    return base64.urlsafe_b64encode(f"{payload}|{sig}".encode()).decode()
+    return f"{user_id}|{expiry}"
 
 
 def verify_session_token(token: str):
-    """Returns the user_id if the token is well-formed, correctly signed,
-    and not expired — otherwise None. Signature check happens with
-    hmac.compare_digest to avoid timing-attack leakage."""
     try:
-        raw = base64.urlsafe_b64decode(token.encode()).decode()
-        user_id, expiry, sig = raw.split("|")
-        expected_sig = hmac.new(_session_secret(), f"{user_id}|{expiry}".encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sig, expected_sig):
-            return None
+        user_id, expiry = token.split("|")
         if int(expiry) < int(dt.datetime.now(dt.timezone.utc).timestamp()):
             return None
         return user_id
@@ -165,16 +161,16 @@ def verify_session_token(token: str):
 
 
 def set_session_cookie(user_id: str):
-    get_cookie_controller().set(
-        "sanjeevani_session", make_session_token(user_id), max_age=60 * 60 * 24 * 30
-    )
+    cookies = get_cookies()
+    cookies["sanjeevani_session"] = make_session_token(user_id)
+    cookies.save()
 
 
 def clear_session_cookie():
-    try:
-        get_cookie_controller().remove("sanjeevani_session")
-    except Exception:
-        pass
+    cookies = get_cookies()
+    if "sanjeevani_session" in cookies:
+        del cookies["sanjeevani_session"]
+        cookies.save()
 
 
 def restore_session_from_cookie():
@@ -183,7 +179,8 @@ def restore_session_from_cookie():
     instead of making them log in again after every page refresh."""
     if "user_id" in st.session_state:
         return
-    token = get_cookie_controller().get("sanjeevani_session")
+    cookies = get_cookies()
+    token = cookies.get("sanjeevani_session")
     if not token:
         return
     user_id = verify_session_token(token)
