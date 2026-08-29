@@ -16,6 +16,9 @@ import sys
 import datetime as dt
 import hashlib
 import secrets
+import pyotp
+import qrcode
+import io
 import logging
 from statistics import mean
 
@@ -168,10 +171,47 @@ def page_login_register():
                 user.failed_login_count = 0
                 user.locked_until = None
                 db.commit()
-                st.session_state["user_id"] = str(user.id)
-                st.rerun()
+
+                prefs = db.query(models.UserPreferences).filter(
+                    models.UserPreferences.user_id == user.id
+                ).first()
+                totp_settings = (prefs.notification_settings or {}) if prefs else {}
+                if totp_settings.get("totp_enabled"):
+                    st.session_state["pending_2fa_user_id"] = str(user.id)
+                    st.rerun()
+                else:
+                    st.session_state["user_id"] = str(user.id)
+                    st.rerun()
             finally:
                 db.close()
+
+    if st.session_state.get("pending_2fa_user_id"):
+        st.divider()
+        st.write("**Two-factor authentication**")
+        st.caption("Enter the 6-digit code from your authenticator app.")
+        with st.form("totp_form"):
+            code = st.text_input("Code", max_chars=6)
+            totp_submitted = st.form_submit_button("Verify")
+        if totp_submitted:
+            db = get_db()
+            try:
+                uid = st.session_state["pending_2fa_user_id"]
+                if not rate_limiter.allow(f"totp:{uid}"):
+                    st.error("Too many attempts. Please wait a moment and try again.")
+                    return
+                prefs = db.query(models.UserPreferences).filter(
+                    models.UserPreferences.user_id == uid
+                ).first()
+                secret = (prefs.notification_settings or {}).get("totp_secret") if prefs else None
+                if secret and pyotp.TOTP(secret).verify(code.strip(), valid_window=1):
+                    del st.session_state["pending_2fa_user_id"]
+                    st.session_state["user_id"] = uid
+                    st.rerun()
+                else:
+                    st.error("Incorrect code. Please try again.")
+            finally:
+                db.close()
+        return
 
     with tab_register:
         with st.form("register_form"):
@@ -551,6 +591,61 @@ def page_privacy(db, user):
         _log_audit(db, user.id, "consent_preferences_updated", "user_preferences", user.id, changes)
         db.commit()
         st.success("Preferences saved.")
+
+    st.divider()
+    st.write("**Two-factor authentication**")
+    settings = prefs.notification_settings or {}
+
+    if settings.get("totp_enabled"):
+        st.success("2FA is enabled on your account.")
+        with st.form("disable_2fa_form"):
+            confirm_code = st.text_input("Enter a current code from your authenticator app to disable 2FA", max_chars=6)
+            disable_submitted = st.form_submit_button("Disable 2FA")
+        if disable_submitted:
+            secret = settings.get("totp_secret")
+            if secret and pyotp.TOTP(secret).verify(confirm_code.strip(), valid_window=1):
+                settings["totp_enabled"] = False
+                settings["totp_secret"] = None
+                prefs.notification_settings = settings
+                _log_audit(db, user.id, "2fa_disabled", "user_preferences", user.id, {})
+                db.commit()
+                st.success("2FA disabled.")
+                st.rerun()
+            else:
+                st.error("Incorrect code.")
+    else:
+        st.caption("Add an extra layer of security using an authenticator app (Google Authenticator, Authy, etc.).")
+        if "pending_totp_secret" not in st.session_state:
+            if st.button("Set up 2FA"):
+                st.session_state["pending_totp_secret"] = pyotp.random_base32()
+                st.rerun()
+        else:
+            secret = st.session_state["pending_totp_secret"]
+            uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name="Sanjeevani")
+            qr_img = qrcode.make(uri)
+            buf = io.BytesIO()
+            qr_img.save(buf, format="PNG")
+            st.image(buf.getvalue(), width=220, caption="Scan with your authenticator app")
+            st.code(secret, language=None)
+            st.caption("Or enter this key manually if you can't scan the code.")
+            with st.form("confirm_2fa_form"):
+                verify_code = st.text_input("Enter the 6-digit code to confirm setup", max_chars=6)
+                confirm_submitted = st.form_submit_button("Confirm & enable 2FA")
+            if confirm_submitted:
+                if pyotp.TOTP(secret).verify(verify_code.strip(), valid_window=1):
+                    settings["totp_enabled"] = True
+                    settings["totp_secret"] = secret
+                    prefs.notification_settings = settings
+                    _log_audit(db, user.id, "2fa_enabled", "user_preferences", user.id, {})
+                    db.commit()
+                    del st.session_state["pending_totp_secret"]
+                    st.success("2FA enabled!")
+                    st.rerun()
+                else:
+                    st.error("Incorrect code. Please try again.")
+            if st.button("Cancel setup"):
+                del st.session_state["pending_totp_secret"]
+                st.rerun()
 
     st.divider()
     if st.button("Export my data (JSON)"):
