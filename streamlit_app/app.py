@@ -73,6 +73,21 @@ def get_cipher(db, user) -> UserCipher:
     return UserCipher(plaintext_dek)
 
 
+def safe_decrypt(cipher: UserCipher, ciphertext) -> str:
+    """Decrypts, but never crashes the page. If SANJEEVANI_MASTER_KEY was
+    ever rotated, entries encrypted under the old key can no longer be
+    decrypted — that's an expected, permanent consequence of key rotation
+    (by design: the app never has the old key sitting around "just in
+    case"). Rather than letting that throw and crash the whole page, show
+    a clear inline message for just that one entry."""
+    if not ciphertext:
+        return ""
+    try:
+        return cipher.decrypt(ciphertext)
+    except Exception:
+        return "⚠️ Could not decrypt this entry (it may have been saved under a since-rotated encryption key)."
+
+
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
     db.add(models.AuditLog(
         actor_id=actor_id, action=action, target_type=target_type,
@@ -470,7 +485,7 @@ def page_journal(db, user):
         st.caption("No journal entries yet.")
     for e in entries:
         with st.expander(e.created_at.strftime("%b %d, %Y %H:%M")):
-            st.write(cipher.decrypt(e.content_encrypted))
+            st.write(safe_decrypt(cipher, e.content_encrypted))
             if st.button("Delete", key=f"del_journal_{e.id}"):
                 db.delete(e)
                 db.commit()
@@ -545,7 +560,7 @@ def page_privacy(db, user):
         export = {
             "user": {"id": str(user.id), "email": user.email, "display_name": user.display_name},
             "mood_entries": [{"mood_score": m.mood_score, "tags": m.tags, "logged_at": m.logged_at.isoformat()} for m in moods],
-            "journals": [{"content": cipher.decrypt(j.content_encrypted), "created_at": j.created_at.isoformat()} for j in journals],
+            "journals": [{"content": safe_decrypt(cipher, j.content_encrypted), "created_at": j.created_at.isoformat()} for j in journals],
         }
         _log_audit(db, user.id, "data_export_requested", "user", user.id, {})
         db.commit()
@@ -628,7 +643,7 @@ def page_contacts(db, user):
         st.caption("No emergency contacts added yet.")
     for c in contacts:
         col1, col2 = st.columns([4, 1])
-        col1.write(f"**{c.name}** ({c.relationship_label or 'unspecified'}) — {_mask(cipher.decrypt(c.phone_encrypted))}")
+        col1.write(f"**{c.name}** ({c.relationship_label or 'unspecified'}) — {_mask(safe_decrypt(cipher, c.phone_encrypted))}")
         if col2.button("Remove", key=f"rm_contact_{c.id}"):
             c.active = False
             db.commit()
