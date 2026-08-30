@@ -140,6 +140,48 @@ def restore_session_from_cookie():
     pass
 
 
+def compute_mood_streak(db, user):
+    """Consecutive-day streak of mood logging, counting back from today."""
+    entries = (
+        db.query(models.MoodEntry.logged_at)
+        .filter(models.MoodEntry.user_id == user.id)
+        .order_by(models.MoodEntry.logged_at.desc())
+        .all()
+    )
+    logged_days = sorted({e.logged_at.date() for e in entries}, reverse=True)
+    if not logged_days:
+        return 0, 0
+
+    today = dt.datetime.now(dt.timezone.utc).date()
+    current = 0
+    cursor = today
+    day_set = set(logged_days)
+    if today not in day_set:
+        cursor = today - dt.timedelta(days=1)
+    while cursor in day_set:
+        current += 1
+        cursor -= dt.timedelta(days=1)
+
+    longest = 1
+    run = 1
+    for i in range(1, len(logged_days)):
+        if (logged_days[i - 1] - logged_days[i]).days == 1:
+            run += 1
+        else:
+            longest = max(longest, run)
+            run = 1
+    longest = max(longest, run, current)
+    return current, longest
+
+
+STREAK_MILESTONES = [3, 7, 14, 30, 60, 100]
+
+
+def streak_badge_for(streak: int) -> str:
+    reached = [m for m in STREAK_MILESTONES if streak >= m]
+    return f"{reached[-1]}-day badge 🏅" if reached else ""
+
+
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
     db.add(models.AuditLog(
         actor_id=actor_id, action=action, target_type=target_type,
