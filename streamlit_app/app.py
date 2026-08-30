@@ -22,7 +22,6 @@ import qrcode
 import io
 import hmac
 import base64
-from streamlit_cookies_manager import EncryptedCookieManager
 import logging
 from statistics import mean
 
@@ -123,114 +122,22 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Persistent login ("remember me") via an encrypted browser cookie
+# Persistent login ("remember me") — DISABLED
 # ---------------------------------------------------------------------------
-_cookies = None
-
-
-def get_cookies():
-    """EncryptedCookieManager needs a moment to sync with the browser on
-    first load — .ready() tells us whether that round-trip has completed
-    yet. Until it has, we must not read/write cookies or make login
-    decisions based on them (that's the bug that made session persistence
-    silently fail before): we stop this run and let Streamlit's own
-    automatic rerun (triggered by the component once it's ready) pick
-    things up a moment later."""
-    global _cookies
-    if _cookies is None:
-        secret = os.getenv("SANJEEVANI_SESSION_SECRET") or os.getenv("SANJEEVANI_MASTER_KEY") or "insecure-dev-secret"
-        _cookies = EncryptedCookieManager(prefix="sanjeevani/", password=secret)
-    if not _cookies.ready():
-        st.stop()
-    return _cookies
-
-
-def make_session_token(user_id: str, days: int = 30) -> str:
-    expiry = int((dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=days)).timestamp())
-    return f"{user_id}|{expiry}"
-
-
-def verify_session_token(token: str):
-    try:
-        user_id, expiry = token.split("|")
-        if int(expiry) < int(dt.datetime.now(dt.timezone.utc).timestamp()):
-            return None
-        return user_id
-    except Exception:
-        return None
-
-
+# Two third-party cookie libraries both proved unreliable in this Streamlit
+# version: one had a read-timing race, the other crashed the whole app
+# with a set_page_config ordering conflict. Disabled for now so the app
+# is stable (you have to log in again after a refresh, as before).
 def set_session_cookie(user_id: str):
-    cookies = get_cookies()
-    cookies["sanjeevani_session"] = make_session_token(user_id)
-    cookies.save()
+    pass
 
 
 def clear_session_cookie():
-    cookies = get_cookies()
-    if "sanjeevani_session" in cookies:
-        del cookies["sanjeevani_session"]
-        cookies.save()
+    pass
 
 
 def restore_session_from_cookie():
-    """Runs before the login check — if a valid remember-me cookie exists
-    from a previous visit, this signs the person back in automatically
-    instead of making them log in again after every page refresh."""
-    if "user_id" in st.session_state:
-        return
-    cookies = get_cookies()
-    token = cookies.get("sanjeevani_session")
-    if not token:
-        return
-    user_id = verify_session_token(token)
-    if user_id:
-        st.session_state["user_id"] = user_id
-
-
-def compute_mood_streak(db, user):
-    """Consecutive-day streak of mood logging, counting back from today.
-    A streak survives a "today, no entry yet" gap (still counts if
-    yesterday had one) but breaks on any actual missed day. Returns
-    (current_streak, longest_streak_ever)."""
-    entries = (
-        db.query(models.MoodEntry.logged_at)
-        .filter(models.MoodEntry.user_id == user.id)
-        .order_by(models.MoodEntry.logged_at.desc())
-        .all()
-    )
-    logged_days = sorted({e.logged_at.date() for e in entries}, reverse=True)
-    if not logged_days:
-        return 0, 0
-
-    today = dt.datetime.now(dt.timezone.utc).date()
-    current = 0
-    cursor = today
-    day_set = set(logged_days)
-    if today not in day_set:
-        cursor = today - dt.timedelta(days=1)
-    while cursor in day_set:
-        current += 1
-        cursor -= dt.timedelta(days=1)
-
-    longest = 1
-    run = 1
-    for i in range(1, len(logged_days)):
-        if (logged_days[i - 1] - logged_days[i]).days == 1:
-            run += 1
-        else:
-            longest = max(longest, run)
-            run = 1
-    longest = max(longest, run, current)
-    return current, longest
-
-
-STREAK_MILESTONES = [3, 7, 14, 30, 60, 100]
-
-
-def streak_badge_for(streak: int) -> str:
-    reached = [m for m in STREAK_MILESTONES if streak >= m]
-    return f"{reached[-1]}-day badge 🏅" if reached else ""
+    pass
 
 
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
