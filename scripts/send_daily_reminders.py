@@ -13,13 +13,13 @@ import os
 import sys
 import datetime as dt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.app import models
-from backend.app import email_service
+from app import models
+from app import email_service
 
 
 def main():
