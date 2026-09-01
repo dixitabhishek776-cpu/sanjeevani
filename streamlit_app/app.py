@@ -725,6 +725,17 @@ def page_privacy(db, user):
     st.write("**Two-factor authentication**")
     settings = prefs.notification_settings or {}
 
+    st.divider()
+    st.write("**Daily check-in reminder**")
+    st.caption("Get a gentle email nudge if you haven't logged your mood by evening.")
+    reminder_on = st.checkbox("Send me a daily reminder", value=settings.get("daily_reminder_enabled", False))
+    if reminder_on != settings.get("daily_reminder_enabled", False):
+        settings["daily_reminder_enabled"] = reminder_on
+        prefs.notification_settings = settings
+        db.commit()
+        st.success("Reminder preference saved." if reminder_on else "Reminders turned off.")
+
+
     if settings.get("totp_enabled"):
         st.success("2FA is enabled on your account.")
         with st.form("disable_2fa_form"):
@@ -775,16 +786,6 @@ def page_privacy(db, user):
             if st.button("Cancel setup"):
                 del st.session_state["pending_totp_secret"]
                 st.rerun()
-
-    st.divider()
-    st.write("**Daily check-in reminder**")
-    st.caption("Get a gentle email nudge if you haven't logged your mood by evening.")
-    reminder_on = st.checkbox("Send me a daily reminder", value=settings.get("daily_reminder_enabled", False))
-    if reminder_on != settings.get("daily_reminder_enabled", False):
-        settings["daily_reminder_enabled"] = reminder_on
-        prefs.notification_settings = settings
-        db.commit()
-        st.success("Reminder preference saved." if reminder_on else "Reminders turned off.")
 
     st.divider()
     if st.button("Export my data (JSON)"):
