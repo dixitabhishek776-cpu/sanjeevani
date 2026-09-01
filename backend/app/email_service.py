@@ -64,3 +64,53 @@ def send_verification_email(to_email: str, verify_link: str) -> bool:
     except Exception:
         logger.exception("Verification email send failed")
         return False
+
+
+def send_reminder_email(to_email: str, name: str, app_url: str) -> bool:
+    """Daily opt-in check-in reminder. Callers should only send this to
+    users who enabled it AND haven't already logged a mood entry today
+    (see scripts/send_daily_reminders.py) — no point nagging someone
+    who already checked in."""
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        return False
+    display_name = name or "there"
+    try:
+        resp = requests.post(
+            RESEND_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": FROM_ADDRESS,
+                "to": [to_email],
+                "subject": "A moment for yourself? 🌱",
+                "html": f"""
+                <div style="font-family:sans-serif;max-width:480px;margin:auto;
+                            padding:24px;">
+                  <h2 style="color:#2E3A32;">🌱 Sanjeevani</h2>
+                  <p>Hi {display_name}, just a gentle nudge — you haven't
+                     checked in today.</p>
+                  <p>
+                    <a href="{app_url}"
+                       style="background:#6E8B7A;color:white;padding:10px 20px;
+                              border-radius:8px;text-decoration:none;
+                              display:inline-block;">
+                      Log your mood
+                    </a>
+                  </p>
+                  <p style="color:#8A968D;font-size:12px;">
+                    You're getting this because you opted in to daily
+                    reminders in your Sanjeevani privacy settings. You can
+                    turn this off any time from there.
+                  </p>
+                </div>
+                """,
+            },
+            timeout=10,
+        )
+        return resp.status_code < 300
+    except Exception:
+        logger.exception("Reminder email send failed")
+        return False
