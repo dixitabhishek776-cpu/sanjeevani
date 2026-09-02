@@ -787,6 +787,29 @@ def page_summary(db, user):
     ).count()
     avg = round(mean([m.mood_score for m in moods]), 2) if moods else None
 
+    if avg is not None:
+        _pct = avg / 10 * 100
+        _deg = _pct / 100 * 360
+        st.markdown(
+            f'''<style>
+            .score-circle {{
+                width: 130px; height: 130px; border-radius: 50%;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                margin: 10px auto 18px auto;
+                background:
+                    radial-gradient(circle, white 57%, transparent 58%),
+                    conic-gradient(#7956E8 0deg, #7956E8 {_deg}deg, #ECE8F8 {_deg}deg, #ECE8F8 360deg);
+            }}
+            .score-number {{ color: #292351; font-size: 30px; font-weight: 800; }}
+            .score-label {{ color: #A09DAD; font-size: 9px; }}
+            </style>
+            <div class="score-circle">
+                <div class="score-number">{avg}</div>
+                <div class="score-label">avg mood /10</div>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+
     col1, col2, col3 = st.columns(3)
     col1.metric("Avg mood", f"{avg}/10" if avg is not None else "—")
     col2.metric("Journal entries", journals)
