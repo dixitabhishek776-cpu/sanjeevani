@@ -723,6 +723,25 @@ def page_mood(db, user):
 # ---------------------------------------------------------------------------
 
 def page_journal(db, user):
+    st.markdown(
+        '''<style>
+        .journal-prompt {
+            padding: 22px; border-radius: 22px; margin-bottom: 14px;
+            background: linear-gradient(135deg, #F0EBFF, #FFF2FA);
+        }
+        .journal-prompt-label {
+            color: #805DE0; font-size: 9px; font-weight: 800; letter-spacing: 0.14em;
+        }
+        .journal-prompt-title {
+            margin-top: 8px; color: #41336E; font-size: 19px; font-weight: 750;
+        }
+        </style>
+        <div class="journal-prompt">
+            <div class="journal-prompt-label">YOUR SPACE</div>
+            <div class="journal-prompt-title">Write freely, feel lightly 📖</div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
     st.subheader("Journal")
     cipher = get_cipher(db, user)
     with st.form("journal_form"):
