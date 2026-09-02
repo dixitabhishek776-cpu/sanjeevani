@@ -201,6 +201,74 @@ def render_banner():
            header/subheader — on mobile, tapping it opens the browser's
            "copy link / download link" menu instead of being useful. */
         [data-testid="stHeaderActionElements"] { display: none !important; }
+
+        /* sanjeevani-amrit-theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] { font-family: "Inter", sans-serif; }
+        h1, h2, h3 { color: #302A52; font-weight: 800; }
+
+        .stApp {
+            background:
+                radial-gradient(circle at 10% 0%, rgba(139,92,246,0.10), transparent 28%),
+                radial-gradient(circle at 100% 30%, rgba(236,72,153,0.07), transparent 25%),
+                #F8F7FC;
+        }
+
+        .stButton > button, .stFormSubmitButton > button {
+            border-radius: 15px !important;
+            border: 1px solid #ECE8FA !important;
+            background: linear-gradient(135deg, #8B5CF6, #6752D7) !important;
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            min-height: 42px !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        .stButton > button:hover, .stFormSubmitButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(95,75,180,0.18) !important;
+        }
+
+        [data-testid="stForm"], [data-testid="stMetric"] {
+            background: rgba(255,255,255,0.85);
+            border: 1px solid rgba(255,255,255,0.95);
+            border-radius: 22px;
+            padding: 1.1rem 1.2rem;
+            box-shadow: 0 8px 30px rgba(65,45,120,0.06);
+            backdrop-filter: blur(10px);
+        }
+
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249,247,255,0.96));
+            border-right: 1px solid rgba(125,95,220,0.08);
+        }
+
+        .amrit-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 8px 20px 8px;
+        }
+        .amrit-brand-logo {
+            width: 46px; height: 46px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #8B5CF6, #6752D7);
+            box-shadow: 0 12px 30px rgba(112,78,210,0.24);
+            font-size: 25px;
+        }
+        .amrit-brand-name { font-size: 17px; font-weight: 800; color: #44358D; line-height: 1.1; }
+        .amrit-brand-sub { margin-top: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: #8B6FEA; }
+
+        [data-testid="stChatMessage"] {
+            border-radius: 20px !important;
+            background: #F1EDFF !important;
+        }
+        [data-testid="stChatMessage"]:has(img[alt="user avatar"]) {
+            background: linear-gradient(135deg, #7656E8, #6548D2) !important;
+            color: white !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1226,6 +1294,16 @@ def main():
                     st.success("Sent!" if sent else "Email delivery isn't configured on this deployment.")
 
         with st.sidebar:
+            st.markdown(
+                '''<div class="amrit-brand">
+                    <div class="amrit-brand-logo"><span>🪷</span></div>
+                    <div>
+                        <div class="amrit-brand-name">Sanjeevani</div>
+                        <div class="amrit-brand-sub">AMRIT</div>
+                    </div>
+                </div>''',
+                unsafe_allow_html=True,
+            )
             st.write(f"Signed in as **{user.display_name or user.email}**")
             current_streak, longest_streak = compute_mood_streak(db, user)
             if current_streak > 0:
