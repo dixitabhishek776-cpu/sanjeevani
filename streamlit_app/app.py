@@ -825,6 +825,28 @@ def page_summary(db, user):
 # ---------------------------------------------------------------------------
 
 def page_privacy(db, user):
+    st.markdown(
+        '''<style>
+        .privacy-card {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 16px; border-radius: 20px; margin-bottom: 14px;
+            background: rgba(236,253,245,0.65); border: 1px solid #D5F4E5;
+        }
+        .privacy-icon {
+            width: 38px; height: 38px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; background: white; font-size: 17px;
+        }
+        </style>
+        <div class="privacy-card">
+            <div class="privacy-icon">🛡️</div>
+            <div>
+                <strong>Your data, your control</strong><br/>
+                <span style="font-size:11px;color:#5c6b60;">Export or delete anytime. Everything sensitive is encrypted per-user.</span>
+            </div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
     st.subheader("Privacy & data")
     prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
     if not prefs:
@@ -974,6 +996,16 @@ def _mask(v):
 
 
 def page_contacts(db, user):
+    st.markdown(
+        '''<div class="privacy-card">
+            <div class="privacy-icon">💜</div>
+            <div>
+                <strong>Trusted people, on standby</strong><br/>
+                <span style="font-size:11px;color
+</div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
     st.subheader("Emergency contacts")
     cipher = get_cipher(db, user)
 
