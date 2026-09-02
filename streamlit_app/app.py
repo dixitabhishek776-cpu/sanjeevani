@@ -589,7 +589,28 @@ def page_chat(db, user):
 # ---------------------------------------------------------------------------
 
 def page_mood(db, user):
+    st.markdown(
+        '''<style>
+        .mood-emoji-display { text-align: center; font-size: 55px; margin: 6px 0; }
+        .mood-number-display { text-align: center; font-size: 44px; font-weight: 800; color: #5F49B8; }
+        </style>''',
+        unsafe_allow_html=True,
+    )
     st.subheader("Mood")
+
+    _latest = (
+        db.query(models.MoodEntry)
+        .filter(models.MoodEntry.user_id == user.id)
+        .order_by(models.MoodEntry.logged_at.desc())
+        .first()
+    )
+    if _latest:
+        _score = _latest.mood_score
+        _emoji = "😄" if _score >= 8 else "🙂" if _score >= 6 else "😐" if _score >= 4 else "😔"
+        st.markdown(f'<div class="mood-emoji-display">{_emoji}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mood-number-display">{_score}<span style="font-size:16px;color:#9B99A9;">/10</span></div>', unsafe_allow_html=True)
+        st.caption(f"Last logged {_latest.logged_at.strftime('%b %d, %H:%M')}")
+        st.write("")
     with st.form("mood_form"):
         score = st.slider("How are you feeling right now? (1 = very low, 10 = very good)", 1, 10, 5)
         tags = st.multiselect("Tags (optional)", ["anxious", "tired", "calm", "stressed", "hopeful", "sad", "grateful", "overwhelmed"])
