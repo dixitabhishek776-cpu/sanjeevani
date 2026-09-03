@@ -1162,98 +1162,60 @@ def run_page_safely(page_fn, *args):
 
 
 def page_intro():
-    """Branded intro: mandatory 10-second video, then a Start button.
-    No skip — the Start button only appears once the video's runtime has
-    elapsed (tracked server-side via streamlit_autorefresh, not by trusting
-    the browser to tell us the video finished)."""
-    import base64
-    import time as _time
-    from streamlit_autorefresh import st_autorefresh
-
+    """Static branded welcome screen (Amrit redesign) — replaces the
+    earlier mandatory video intro. Both buttons lead straight into the
+    existing, unmodified login/register screen."""
     st.markdown(
-        "<h1 style='text-align:center;color:#2E3A32;margin-top:8px;'>🌱 Sanjeevani</h1>",
+        '''<style>
+        .welcome-wrap {
+            min-height: 70vh;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F3FBFC 45%, #DFF5FA 100%);
+            border-radius: 24px;
+            padding: 40px 20px;
+        }
+        .welcome-content { width: 100%; max-width: 430px; margin: 0 auto; text-align: center; }
+        .welcome-logo-circle {
+            width: 130px; height: 130px; margin: 0 auto 14px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #8B5CF6, #6752D7);
+            box-shadow: 0 20px 45px rgba(112,78,210,0.28);
+            font-size: 62px;
+        }
+        .welcome-brand {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 42px; line-height: 1; font-weight: 700;
+            letter-spacing: -1px; color: #0B0B3D;
+        }
+        .welcome-tagline {
+            margin-top: 24px; font-family: Inter, Arial, sans-serif;
+            font-size: 19px; line-height: 1.25; font-weight: 500; color: #11113F;
+        }
+        .welcome-value { margin-top: 14px; font-size: 15px; line-height: 1.4; color: #15153F; }
+        </style>
+        <div class="welcome-wrap">
+          <div class="welcome-content">
+            <div class="welcome-logo-circle">🪷</div>
+            <div class="welcome-brand">Sanjeevani</div>
+            <div class="welcome-tagline">Your Mental Wellness<br/>Companion</div>
+            <div class="welcome-value">Listen • Understand • Support</div>
+          </div>
+        </div>
+        ''',
         unsafe_allow_html=True,
     )
 
-    video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "sanjeevani_intro.mp4")
-    if "intro_started_at" not in st.session_state:
-        st.session_state["intro_started_at"] = _time.time()
-
-    elapsed = _time.time() - st.session_state["intro_started_at"]
-    VIDEO_DURATION = 10.2  # slight buffer over the actual 10.0s clip
-
-    if os.path.exists(video_path) and elapsed < VIDEO_DURATION:
-        with open(video_path, "rb") as f:
-            video_b64 = base64.b64encode(f.read()).decode()
-        st.components.v1.html(
-            f"""
-            <div id="sanjeevani-intro-wrap" style="display:flex;justify-content:center;
-                        align-items:center;width:100%;background:#F6F5F1;padding:8px 0;">
-              <div style="width:100%;max-width:720px;position:relative;">
-                <video id="sanjeevani-intro-video" autoplay playsinline
-                       style="width:100%;aspect-ratio:16/9;height:auto;border-radius:16px;
-                              display:block;object-fit:contain;background:#000;">
-                  <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
-                </video>
-                <button id="unmute-btn" onclick="
-                    var v=document.getElementById('sanjeevani-intro-video');
-                    v.muted=false; v.play(); this.style.display='none';
-                  " style="position:absolute;bottom:16px;right:16px;display:none;
-                           background:#6E8B7A;color:white;border:none;border-radius:999px;
-                           padding:10px 16px;font-size:14px;cursor:pointer;">
-                  🔊 Tap for sound
-                </button>
-              </div>
-            </div>
-            <script>
-              var v = document.getElementById('sanjeevani-intro-video');
-              var btn = document.getElementById('unmute-btn');
-              var p = v.play();
-              if (p !== undefined) {{
-                p.catch(function() {{
-                  v.muted = true;
-                  v.play();
-                  btn.style.display = 'block';
-                }});
-              }}
-
-              // Responsive iframe height: report actual rendered content
-              // height to the parent Streamlit frame, on load, on video
-              // metadata load, and on any resize/orientation change — so
-              // phone/tablet/desktop/rotation all get a correctly sized
-              // container instead of a hardcoded pixel height.
-              function reportHeight() {{
-                var h = document.getElementById('sanjeevani-intro-wrap').offsetHeight;
-                window.parent.postMessage({{type: "streamlit:setFrameHeight", height: h + 24}}, "*");
-              }}
-              window.addEventListener('resize', reportHeight);
-              v.addEventListener('loadedmetadata', reportHeight);
-              window.addEventListener('load', reportHeight);
-              setTimeout(reportHeight, 100);
-              setTimeout(reportHeight, 500);
-            </script>
-            """,
-            height=420,
-        )
-        # Ticks the page forward until the video's runtime has elapsed —
-        # not a full browser reload, so session_state (and the video
-        # playback itself) isn't disturbed.
-        st_autorefresh(interval=800, limit=20, key="intro_wait")
-        st.markdown(
-            "<p style='text-align:center;color:#8A968D;'>Playing introduction…</p>",
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            "<p style='text-align:center;color:#5A6B5E;font-size:18px;'>"
-            "A calm, private space to reflect.</p>",
-            unsafe_allow_html=True,
-        )
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            if st.button("START", use_container_width=True, type="primary"):
-                st.session_state["onboarding_stage"] = "auth_choice"
-                st.rerun()
+    st.write("")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Get Started", use_container_width=True, type="primary"):
+            st.session_state["onboarding_stage"] = "auth"
+            st.rerun()
+        st.write("")
+        if st.button("I already have an account", use_container_width=True):
+            st.session_state["onboarding_stage"] = "auth"
+            st.rerun()
 
 
 def page_auth_choice():
