@@ -210,15 +210,14 @@ def render_banner():
 
         .stApp {
             background:
-                radial-gradient(circle at 10% 0%, rgba(139,92,246,0.10), transparent 28%),
-                radial-gradient(circle at 100% 30%, rgba(236,72,153,0.07), transparent 25%),
-                #F8F7FC;
+                radial-gradient(circle at 70% 10%, rgba(238,228,255,0.5), transparent 35%),
+                #F7F5FC;
         }
 
         .stButton > button, .stFormSubmitButton > button {
             border-radius: 15px !important;
             border: 1px solid #ECE8FA !important;
-            background: linear-gradient(135deg, #8B5CF6, #6752D7) !important;
+            background: linear-gradient(135deg, #7650E8, #5E3AC9) !important;
             color: white !important;
             font-weight: 700 !important;
             font-size: 12px !important;
@@ -227,21 +226,20 @@ def render_banner():
         }
         .stButton > button:hover, .stFormSubmitButton > button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(95,75,180,0.18) !important;
+            box-shadow: 0 10px 24px rgba(105,61,230,0.25) !important;
         }
 
         [data-testid="stForm"], [data-testid="stMetric"] {
-            background: rgba(255,255,255,0.85);
-            border: 1px solid rgba(255,255,255,0.95);
-            border-radius: 22px;
+            background: #FFFFFF;
+            border: 1px solid #EAE6F2;
+            border-radius: 16px;
             padding: 1.1rem 1.2rem;
-            box-shadow: 0 8px 30px rgba(65,45,120,0.06);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 18px rgba(68,50,110,0.055);
         }
 
         section[data-testid="stSidebar"] {
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249,247,255,0.96));
-            border-right: 1px solid rgba(125,95,220,0.08);
+            background: #FCFBFF;
+            border-right: 1px solid #EAE6F2;
         }
 
         .amrit-brand {
@@ -258,8 +256,8 @@ def render_banner():
             box-shadow: 0 12px 30px rgba(112,78,210,0.24);
             font-size: 25px;
         }
-        .amrit-brand-name { font-size: 17px; font-weight: 800; color: #44358D; line-height: 1.1; }
-        .amrit-brand-sub { margin-top: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: #8B6FEA; }
+        .amrit-brand-name { font-size: 17px; font-weight: 800; color: #7450E7; line-height: 1.1; }
+        .amrit-brand-sub { margin-top: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: #77748A; }
 
         [data-testid="stChatMessage"] {
             border-radius: 20px !important;
