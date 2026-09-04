@@ -1164,43 +1164,29 @@ def page_intro():
     earlier mandatory video intro. Both buttons lead straight into the
     existing, unmodified login/register screen."""
     st.markdown(
-        '''<style>
-        .welcome-wrap {
-            min-height: 70vh;
-            display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F3FBFC 45%, #DFF5FA 100%);
-            border-radius: 24px;
-            padding: 40px 20px;
-        }
-        .welcome-content { width: 100%; max-width: 430px; margin: 0 auto; text-align: center; }
-        .welcome-logo-circle {
-            width: 130px; height: 130px; margin: 0 auto 14px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #8B5CF6, #6752D7);
-            box-shadow: 0 20px 45px rgba(112,78,210,0.28);
-            font-size: 62px;
-        }
-        .welcome-brand {
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 42px; line-height: 1; font-weight: 700;
-            letter-spacing: -1px; color: #0B0B3D;
-        }
-        .welcome-tagline {
-            margin-top: 24px; font-family: Inter, Arial, sans-serif;
-            font-size: 19px; line-height: 1.25; font-weight: 500; color: #11113F;
-        }
-        .welcome-value { margin-top: 14px; font-size: 15px; line-height: 1.4; color: #15153F; }
-        </style>
-        <div class="welcome-wrap">
-          <div class="welcome-content">
-            <div class="welcome-logo-circle">🪷</div>
-            <div class="welcome-brand">Sanjeevani</div>
-            <div class="welcome-tagline">Your Mental Wellness<br/>Companion</div>
-            <div class="welcome-value">Listen • Understand • Support</div>
-          </div>
-        </div>
-        ''',
+        "<style>"
+        ".welcome-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; "
+        "background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F3FBFC 45%, #DFF5FA 100%); "
+        "border-radius: 24px; padding: 40px 20px; }"
+        ".welcome-content { width: 100%; max-width: 430px; margin: 0 auto; text-align: center; }"
+        ".welcome-logo-circle { width: 130px; height: 130px; margin: 0 auto 14px; border-radius: 50%; "
+        "display: flex; align-items: center; justify-content: center; "
+        "background: linear-gradient(135deg, #8B5CF6, #6752D7); "
+        "box-shadow: 0 20px 45px rgba(112,78,210,0.28); font-size: 62px; }"
+        ".welcome-brand { font-family: Georgia, \'Times New Roman\', serif; font-size: 42px; line-height: 1; "
+        "font-weight: 700; letter-spacing: -1px; color: #0B0B3D; }"
+        ".welcome-tagline { margin-top: 24px; font-family: Inter, Arial, sans-serif; font-size: 19px; "
+        "line-height: 1.25; font-weight: 500; color: #11113F; }"
+        ".welcome-value { margin-top: 14px; font-size: 15px; line-height: 1.4; color: #15153F; }"
+        "</style>"
+        "<div class=\'welcome-wrap\'>"
+        "<div class=\'welcome-content\'>"
+        "<div class=\'welcome-logo-circle\'>🪷</div>"
+        "<div class=\'welcome-brand\'>Sanjeevani</div>"
+        "<div class=\'welcome-tagline\'>Your Mental Wellness<br/>Companion</div>"
+        "<div class=\'welcome-value\'>Listen • Understand • Support</div>"
+        "</div>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
