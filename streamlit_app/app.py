@@ -1229,6 +1229,79 @@ def page_auth_choice():
 # Main app / navigation
 # ---------------------------------------------------------------------------
 
+PHQ9_QUESTIONS = [
+    "Little interest or pleasure in doing things",
+    "Feeling down, depressed, or hopeless",
+    "Trouble falling or staying asleep, or sleeping too much",
+    "Feeling tired or having little energy",
+    "Poor appetite or overeating",
+    "Feeling bad about yourself \u2014 or that you are a failure or have let yourself or your family down",
+    "Trouble concentrating on things, such as reading or watching television",
+    "Moving or speaking so slowly that others noticed, or being so fidgety/restless that you moved around a lot more than usual",
+    "Thoughts that you would be better off dead, or of hurting yourself in some way",
+]
+
+GAD7_QUESTIONS = [
+    "Feeling nervous, anxious, or on edge",
+    "Not being able to stop or control worrying",
+    "Worrying too much about different things",
+    "Trouble relaxing",
+    "Being so restless that it is hard to sit still",
+    "Becoming easily annoyed or irritable",
+    "Feeling afraid, as if something awful might happen",
+]
+
+SCREENING_OPTIONS = ["Not at all", "Several days", "More than half the days", "Nearly every day"]
+
+
+def page_screening(db, user):
+    st.subheader("Mental health check-in")
+    st.caption(
+        "Standardized, widely-used screening questionnaires (PHQ-9 for depression, "
+        "GAD-7 for anxiety) \u2014 based on how you have felt over the last 2 weeks. "
+        "This is a screening tool, not a diagnosis."
+    )
+    tool = st.radio("Choose a tool", ["PHQ-9 (Depression)", "GAD-7 (Anxiety)"], horizontal=True)
+    is_phq = tool.startswith("PHQ")
+    questions = PHQ9_QUESTIONS if is_phq else GAD7_QUESTIONS
+
+    with st.form(f"screening_form_{tool}"):
+        answers = []
+        for i, q in enumerate(questions):
+            ans = st.radio(q, SCREENING_OPTIONS, key=f"scr_{tool}_{i}", index=None)
+            answers.append(ans)
+        submitted = st.form_submit_button("See my result")
+
+    if submitted:
+        if None in answers:
+            st.error("Please answer every question.")
+            return
+        scores = [SCREENING_OPTIONS.index(a) for a in answers]
+        total = sum(scores)
+
+        if is_phq and scores[8] > 0:
+            st.error(
+                "You indicated thoughts of self-harm. You do not have to face this alone \u2014 "
+                "please reach out to a crisis line right now."
+            )
+            st.warning(crisis_resources("IN"))
+
+        if is_phq:
+            bands = [(4, "Minimal"), (9, "Mild"), (14, "Moderate"), (19, "Moderately severe"), (27, "Severe")]
+            max_score = 27
+        else:
+            bands = [(4, "Minimal"), (9, "Mild"), (14, "Moderate"), (21, "Severe")]
+            max_score = 21
+        severity = next(label for cutoff, label in bands if total <= cutoff)
+
+        st.metric(f"{tool.split(' ')[0]} score", f"{total}/{max_score}")
+        st.write(f"**Severity band: {severity}**")
+        st.caption(
+            "This score is not saved \u2014 it is only shown to you in this session. "
+            "If this concerns you, consider discussing it with a doctor or mental health professional."
+        )
+
+
 def inject_pwa_support():
     """Adds a manifest link + theme-color meta + service worker registration
     into the real page <head> (Streamlit only renders markdown into <body>,
@@ -1358,7 +1431,7 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Privacy & data", "Emergency contacts"]
+            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Screening", "Privacy & data", "Emergency contacts"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("Reviewer dashboard")
             pages.append("System status")
@@ -1375,6 +1448,8 @@ def main():
             run_page_safely(page_mood, db, user)
         elif choice == "Journal":
             run_page_safely(page_journal, db, user)
+        elif choice == "Screening":
+            run_page_safely(page_screening, db, user)
         elif choice == "Weekly summary":
             run_page_safely(page_summary, db, user)
         elif choice == "Privacy & data":
