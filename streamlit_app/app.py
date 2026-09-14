@@ -1160,47 +1160,61 @@ def run_page_safely(page_fn, *args):
 
 
 def page_intro():
-    """Static branded welcome screen (Amrit redesign) — replaces the
-    earlier mandatory video intro. Both buttons lead straight into the
-    existing, unmodified login/register screen."""
+    """Branded Sanjeevani introduction with a 10-second video and Start button."""
+    import time as _time
+    from streamlit_autorefresh import st_autorefresh
+
     st.markdown(
-        "<style>"
-        ".welcome-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; "
-        "background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F3FBFC 45%, #DFF5FA 100%); "
-        "border-radius: 24px; padding: 40px 20px; }"
-        ".welcome-content { width: 100%; max-width: 430px; margin: 0 auto; text-align: center; }"
-        ".welcome-logo-circle { width: 130px; height: 130px; margin: 0 auto 14px; border-radius: 50%; "
-        "display: flex; align-items: center; justify-content: center; "
-        "background: linear-gradient(135deg, #8B5CF6, #6752D7); "
-        "box-shadow: 0 20px 45px rgba(112,78,210,0.28); font-size: 62px; }"
-        ".welcome-brand { font-family: Georgia, \'Times New Roman\', serif; font-size: 42px; line-height: 1; "
-        "font-weight: 700; letter-spacing: -1px; color: #0B0B3D; }"
-        ".welcome-tagline { margin-top: 24px; font-family: Inter, Arial, sans-serif; font-size: 19px; "
-        "line-height: 1.25; font-weight: 500; color: #11113F; }"
-        ".welcome-value { margin-top: 14px; font-size: 15px; line-height: 1.4; color: #15153F; }"
-        "</style>"
-        "<div class=\'welcome-wrap\'>"
-        "<div class=\'welcome-content\'>"
-        "<div class=\'welcome-logo-circle\'>🪷</div>"
-        "<div class=\'welcome-brand\'>Sanjeevani</div>"
-        "<div class=\'welcome-tagline\'>Your Mental Wellness<br/>Companion</div>"
-        "<div class=\'welcome-value\'>Listen • Understand • Support</div>"
-        "</div>"
-        "</div>",
+        "<h1 style='text-align:center;color:#2E3A32;margin-top:8px;'>🌱 Sanjeevani</h1>",
         unsafe_allow_html=True,
     )
 
-    st.write("")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("Get Started", use_container_width=True, type="primary"):
-            st.session_state["onboarding_stage"] = "auth"
-            st.rerun()
-        st.write("")
-        if st.button("I already have an account", use_container_width=True):
-            st.session_state["onboarding_stage"] = "auth"
-            st.rerun()
+    video_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "assets",
+        "sanjeevani_intro.mp4",
+    )
 
+    if "intro_started_at" not in st.session_state:
+        st.session_state["intro_started_at"] = _time.time()
+
+    elapsed = _time.time() - st.session_state["intro_started_at"]
+    VIDEO_DURATION = 10.2
+
+    if os.path.exists(video_path) and elapsed < VIDEO_DURATION:
+        with open(video_path, "rb") as f:
+            video_bytes = f.read()
+
+        st.video(video_bytes, autoplay=True, muted=True)
+
+        st.markdown(
+            "<p style='text-align:center;color:#8A968D;'>"
+            "Playing introduction…</p>",
+            unsafe_allow_html=True,
+        )
+
+        st_autorefresh(
+            interval=800,
+            limit=20,
+            key="intro_wait",
+        )
+
+    else:
+        st.markdown(
+            "<p style='text-align:center;color:#5A6B5E;font-size:18px;'>"
+            "A calm, private space to reflect.</p>",
+            unsafe_allow_html=True,
+        )
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+
+        with col2:
+            if st.button(
+                "START",
+                use_container_width=True,
+                type="primary",
+            ):
+                st.session_state["onboarding_stage"] = "auth_choice"
 
 def page_auth_choice():
     """Stage 2 of onboarding: choose Login or Register. Both lead into the
