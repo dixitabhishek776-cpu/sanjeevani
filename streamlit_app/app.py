@@ -452,17 +452,37 @@ def page_chat(db, user):
     with col_b:
         st.session_state.setdefault("speak_replies", False)
         st.checkbox("🔊 Read replies aloud", key="speak_replies")
+    st.session_state.setdefault("automation_enabled", False)
+    st.checkbox(
+        "🤖 Automatic assist (AI gently suggests mood check-ins / screenings "
+        "based on our chat — never saves anything without your confirmation)",
+        key="automation_enabled",
+    )
 
     if "chat_id" not in st.session_state:
         st.session_state["chat_id"] = None
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
-    for msg in st.session_state["chat_history"]:
+    for _i, msg in enumerate(st.session_state["chat_history"]):
         with st.chat_message(msg["sender"]):
             st.write(msg["text"])
             if msg.get("resources_text"):
                 st.warning(msg["resources_text"])
+            if msg.get("suggested_mood") is not None:
+                with st.expander(f"🤖 Suggested mood check-in: {msg['suggested_mood']}/10 — log it?"):
+                    _sm = st.slider("Adjust if needed", 1, 10, msg["suggested_mood"], key=f"auto_mood_slider_{_i}")
+                    if st.button("Log this mood", key=f"auto_mood_save_{_i}"):
+                        db.add(models.MoodEntry(user_id=user.id, mood_score=_sm, tags=["auto-suggested"]))
+                        db.commit()
+                        st.success("Mood logged.")
+                        st.rerun()
+            if msg.get("suggest_screening"):
+                st.info(
+                    "🤖 It sounds like this has been on your mind for a bit — the "
+                    "**Screening** tab (PHQ-9 / GAD-7) in the sidebar might help you check in "
+                    "more fully, whenever you're ready."
+                )
 
     if st.session_state["speak_replies"] and st.session_state["chat_history"]:
         last = st.session_state["chat_history"][-1]
@@ -574,10 +594,24 @@ def page_chat(db, user):
     db.flush()
     db.commit()
 
+    suggested_mood = None
+    suggest_screening = False
+    if st.session_state.get("automation_enabled"):
+        if assessment.concern_level == "moderate":
+            suggested_mood = 4
+        elif assessment.concern_level == "high":
+            suggested_mood = 2
+        if assessment.concern_level in ("moderate", "high", "immediate"):
+            st.session_state["elevated_concern_count"] = st.session_state.get("elevated_concern_count", 0) + 1
+            if st.session_state["elevated_concern_count"] == 2:
+                suggest_screening = True
+
     st.session_state["chat_history"].append({"sender": "user", "text": prompt})
     st.session_state["chat_history"].append({
         "sender": "assistant", "text": ai_reply["text"],
         "resources_text": ai_reply["resources_text"],
+        "suggested_mood": suggested_mood,
+        "suggest_screening": suggest_screening,
     })
     st.rerun()
 
