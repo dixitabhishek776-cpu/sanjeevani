@@ -441,6 +441,38 @@ def page_login_register():
 # Chat page
 # ---------------------------------------------------------------------------
 
+def render_breathing_exercise():
+    """Self-contained animated breathing circle -- pure HTML/CSS/JS, zero
+    API cost. Loops while this chat message is on screen; a rerun (sending
+    another message) naturally resets it."""
+    st.components.v1.html(
+        "<div style=\"text-align:center;font-family:Inter,Arial,sans-serif;\">"
+        "<div id=\"breathCircle\" style=\"width:120px;height:120px;border-radius:50%;"
+        "background:linear-gradient(135deg,#8B5CF6,#6752D7);margin:16px auto;"
+        "display:flex;align-items:center;justify-content:center;color:white;"
+        "font-weight:700;font-size:13px;transition:transform 4s ease-in-out;"
+        "box-shadow:0 10px 30px rgba(112,78,210,0.35);\">Get ready...</div>"
+        "</div>"
+        "<script>"
+        "var circle = document.getElementById('breathCircle');"
+        "var phase = 0;"
+        "function cycle() {"
+        "  if (phase % 2 === 0) {"
+        "    circle.style.transform = 'scale(1.4)';"
+        "    circle.innerText = 'Breathe in...';"
+        "  } else {"
+        "    circle.style.transform = 'scale(1)';"
+        "    circle.innerText = 'Breathe out...';"
+        "  }"
+        "  phase++;"
+        "}"
+        "setTimeout(cycle, 600);"
+        "setInterval(cycle, 4000);"
+        "</script>",
+        height=180,
+    )
+
+
 def page_chat(db, user):
     st.subheader("Chat")
     st.caption("Start whenever you're ready. There's no wrong way to begin.")
@@ -484,6 +516,14 @@ def page_chat(db, user):
                     "**Screening** tab (PHQ-9 / GAD-7) in the sidebar might help you check in "
                     "more fully, whenever you're ready."
                 )
+            if msg.get("intervention"):
+                _interv = msg["intervention"]
+                with st.expander("🌿 Try: " + _interv["title"]):
+                    if _interv["slug"] == "slow-breathing":
+                        render_breathing_exercise()
+                    for _step_i, _step in enumerate(_interv["steps"], 1):
+                        st.write(str(_step_i) + ". " + _step)
+                    st.caption("Source: " + _interv["evidence_source"])
 
     if st.session_state["speak_replies"] and st.session_state["chat_history"]:
         last = st.session_state["chat_history"][-1]
@@ -613,6 +653,7 @@ def page_chat(db, user):
         "resources_text": ai_reply["resources_text"],
         "suggested_mood": suggested_mood,
         "suggest_screening": suggest_screening,
+        "intervention": ai_reply.get("intervention"),
     })
     st.rerun()
 
@@ -622,13 +663,7 @@ def page_chat(db, user):
 # ---------------------------------------------------------------------------
 
 def page_mood(db, user):
-    st.markdown(
-        '''<style>
-        .mood-emoji-display { text-align: center; font-size: 55px; margin: 6px 0; }
-        .mood-number-display { text-align: center; font-size: 44px; font-weight: 800; color: #5F49B8; }
-        </style>''',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<style>.mood-emoji-display{text-align:center;font-size:55px;margin:6px 0;}.mood-number-display{text-align:center;font-size:44px;font-weight:800;color:#5F49B8;}</style>', unsafe_allow_html=True)
     st.subheader("Mood")
 
     _latest = (
