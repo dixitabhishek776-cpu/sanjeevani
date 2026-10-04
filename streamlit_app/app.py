@@ -13,6 +13,7 @@ see the banner rendered on every page.
 """
 import os
 import requests
+import time
 import sys
 import datetime as dt
 import hashlib
@@ -40,7 +41,7 @@ from app import email_service  # noqa: E402
 from app.core.crypto import generate_dek, wrap_dek, unwrap_dek, UserCipher  # noqa: E402
 from app.agents.emotion_agent import EmotionAnalysisAgent  # noqa: E402
 from app.agents.safety_agent import SafetyIntelligenceAgent, decision_router  # noqa: E402
-from app.agents.conversation_agent import ConversationAgent  # noqa: E402
+from app.agents.conversation_agent import ConversationAgent, COMPANION_NAME  # noqa: E402
 from app.agents.llm_client import call_llm  # noqa: E402
 from app.services import rate_limiter, crisis_resources  # noqa: E402
 from app.incident_log import record_incident, recent_incidents  # noqa: E402
@@ -475,7 +476,7 @@ def render_breathing_exercise():
 
 def page_chat(db, user):
     st.subheader("Chat")
-    st.caption("Start whenever you're ready. There's no wrong way to begin.")
+    st.caption(f"Start whenever you're ready — you're chatting with {COMPANION_NAME}. There's no wrong way to begin.")
 
     LANGUAGES = ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati"]
     st.session_state.setdefault("chat_language", "English")
@@ -647,6 +648,11 @@ def page_chat(db, user):
             st.session_state["elevated_concern_count"] = st.session_state.get("elevated_concern_count", 0) + 1
             if st.session_state["elevated_concern_count"] == 2:
                 suggest_screening = True
+
+    with st.chat_message("assistant"):
+        _typing_ph = st.empty()
+        _typing_ph.write(COMPANION_NAME + " is typing...")
+        time.sleep(min(0.4 + len(ai_reply["text"]) / 180, 2.2))
 
     st.session_state["chat_history"].append({"sender": "user", "text": prompt})
     st.session_state["chat_history"].append({

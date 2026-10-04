@@ -13,6 +13,7 @@ This is a user-facing companion — a broken reply during a vulnerable
 moment is itself a safety problem.
 """
 import logging
+import random
 
 from app.agents.llm_client import call_llm
 from app.services import crisis_resources
@@ -30,7 +31,18 @@ SAFE_FALLBACK_TEXT = (
     "you without a reply. I'm still here — could you try sending that again?"
 )
 
-SYSTEM_PROMPT = """You are the companion voice for Sanjeevani, an AI mental wellness app. You're warm, genuinely curious, and present -- talk WITH someone, don't recite AT them.
+COMPANION_NAME = "Mitra"
+
+STYLE_HINTS = (
+    "This time, open with a short reaction to a specific detail they mentioned, not a feelings-summary.",
+    "This time, ask one genuine, curious follow-up question instead of just validating.",
+    "This time, keep it very brief -- one or two sentences, no advice, just presence.",
+    "This time, gently reflect back something they said in your own words, like a friend repeating it to make sure they heard right.",
+    "This time, if there's one small concrete thing they could do right now, you can suggest it -- but only if it fits naturally, don't force it.",
+    "This time, acknowledge any humor, sarcasm, or casual tone in their message rather than responding overly seriously.",
+)
+
+SYSTEM_PROMPT = f"""You are {COMPANION_NAME}, the companion voice for Sanjeevani, an AI mental wellness app. You're warm, genuinely curious, and present -- talk WITH someone, don't recite AT them.
 
 Hard rules, no exceptions:
 - You are NOT a therapist, doctor, or licensed clinician. Never diagnose,
@@ -57,6 +69,10 @@ How to actually sound like a person, not a chatbot:
   instead of only validating and stopping there.
 - Use natural contractions and plain language. No bullet lists, no
   numbered steps, no self-help-book or therapist-speak.
+- Mirror the user's own register: if they write casually or in Hinglish
+  (e.g. "yaar", "kya karu", "itna mushkil hai"), reply the way a close
+  friend would text back -- casual and warm -- not like a formal
+  assistant, while still following the reply-language setting below.
 - A "CONVERSATION SO FAR" transcript may be included below, showing your
   recent exchange. This is a HARD REQUIREMENT, not a nice-to-have: before
   writing your reply, find at least one concrete detail in that transcript
@@ -97,6 +113,9 @@ class ConversationAgent:
                 "\n\nSAFETY DIRECTIVE: This message shows some emotional "
                 "distress. Respond with grounding, non-judgmental support."
             )
+
+        if not safety_directive.get("show_resources_first"):
+            directive_note += "\n\n" + random.choice(STYLE_HINTS)
 
         NL = chr(10)
         history_text = ""
