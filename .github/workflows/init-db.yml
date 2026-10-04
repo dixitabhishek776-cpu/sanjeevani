@@ -1,0 +1,24 @@
+name: Initialize Database Schema
+
+on:
+  workflow_dispatch:
+
+jobs:
+  init-db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --break-system-packages -r streamlit_app/requirements.txt
+
+      - name: Create tables
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python scripts/init_db.py
