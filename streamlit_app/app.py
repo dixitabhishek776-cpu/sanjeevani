@@ -1435,16 +1435,7 @@ def main():
                     st.success("Sent!" if sent else "Email delivery isn't configured on this deployment.")
 
         with st.sidebar:
-            st.markdown(
-                '''<div class="amrit-brand">
-                    <div class="amrit-brand-logo"><span>🪷</span></div>
-                    <div>
-                        <div class="amrit-brand-name">Sanjeevani</div>
-                        <div class="amrit-brand-sub">AMRIT</div>
-                    </div>
-                </div>''',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="amrit-brand"><div class="amrit-brand-logo"><span>🪷</span></div><div><div class="amrit-brand-name">Sanjeevani</div><div class="amrit-brand-sub">AMRIT</div></div></div>', unsafe_allow_html=True)
             st.write(f"Signed in as **{user.display_name or user.email}**")
             current_streak, longest_streak = compute_mood_streak(db, user)
             if current_streak > 0:
