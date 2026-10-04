@@ -627,7 +627,8 @@ def page_chat(db, user):
         )
 
     ai_reply = conversation_agent.generate_response(
-        prompt, directive, assessment.concern_level, language=st.session_state["chat_language"]
+        prompt, directive, assessment.concern_level, language=st.session_state["chat_language"],
+        history=st.session_state["chat_history"][-8:],
     )
 
     ai_msg = models.Message(chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"]))
