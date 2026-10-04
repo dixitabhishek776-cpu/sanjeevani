@@ -41,6 +41,7 @@ from app.core.crypto import generate_dek, wrap_dek, unwrap_dek, UserCipher  # no
 from app.agents.emotion_agent import EmotionAnalysisAgent  # noqa: E402
 from app.agents.safety_agent import SafetyIntelligenceAgent, decision_router  # noqa: E402
 from app.agents.conversation_agent import ConversationAgent  # noqa: E402
+from app.agents.llm_client import call_llm  # noqa: E402
 from app.services import rate_limiter, crisis_resources  # noqa: E402
 from app.incident_log import record_incident, recent_incidents  # noqa: E402
 
@@ -792,7 +793,8 @@ def page_summary(db, user):
     end = dt.datetime.now(dt.timezone.utc)
     start = end - dt.timedelta(days=7)
     moods = db.query(models.MoodEntry).filter(models.MoodEntry.user_id == user.id, models.MoodEntry.logged_at >= start).all()
-    journals = db.query(models.Journal).filter(models.Journal.user_id == user.id, models.Journal.created_at >= start).count()
+    journal_entries = db.query(models.Journal).filter(models.Journal.user_id == user.id, models.Journal.created_at >= start).order_by(models.Journal.created_at).all()
+    journals = len(journal_entries)
     chats = db.query(models.Chat).filter(models.Chat.user_id == user.id, models.Chat.started_at >= start).count()
     elevated = db.query(models.SafetyAssessment).filter(
         models.SafetyAssessment.user_id == user.id,
@@ -833,9 +835,74 @@ def page_summary(db, user):
     if not (moods or journals or chats):
         st.caption("No activity recorded this week. A small check-in can be a useful place to start.")
 
+    st.markdown("---")
+    st.markdown("#### ✨ Your weekly reflection")
+    insight_key = f"weekly_insight_{user.id}_{start.date().isoformat()}"
+    if st.button("Generate my weekly insight"):
+        with st.spinner("Reflecting on your week..."):
+            try:
+                st.session_state[insight_key] = generate_weekly_insight(db, user, moods, journal_entries, elevated, avg)
+            except Exception:
+                st.session_state[insight_key] = None
+                st.error("Couldn't generate an insight right now — please try again in a bit.")
+    if st.session_state.get(insight_key):
+        with st.container(border=True):
+            st.write(st.session_state[insight_key])
+
+
+
+def generate_weekly_insight(db, user, moods, journal_entries, elevated, avg):
+    """Turns this week's mood/journal data into a short, supportive
+    reflection via the LLM. Never diagnoses or uses clinical language.
+    Raises on failure so the caller can show a graceful fallback instead
+    of a stale or fabricated insight."""
+    NL = chr(10)
+    cipher = get_cipher(db, user)
+
+    mood_lines = []
+    for m in moods:
+        tags = ", ".join(m.tags) if m.tags else ""
+        note = safe_decrypt(cipher, m.note_encrypted) if m.note_encrypted else ""
+        line = "- " + m.logged_at.strftime("%a") + ": " + str(m.mood_score) + "/10"
+        if tags:
+            line += " (tags: " + tags + ")"
+        if note:
+            line += " - note: " + note
+        mood_lines.append(line)
+
+    journal_lines = []
+    for j in journal_entries:
+        text = safe_decrypt(cipher, j.content_encrypted)
+        journal_lines.append("- " + j.created_at.strftime("%a") + ": " + text[:300])
+
+    system = (
+        "You are a warm, supportive wellness reflection assistant inside a "
+        "mental wellness app. You are NOT a therapist or doctor: never "
+        "diagnose, never claim certainty about someone's mental state, never "
+        "use clinical language. Given a summary of one person's week (mood "
+        "scores, optional notes, and journal entries), write a short, "
+        "specific, encouraging reflection in plain language: notice one real "
+        "pattern if one exists, validate their experience without judgment, "
+        "and gently suggest one small, concrete next step. If the data shows "
+        "signs of real distress, gently encourage reaching out to a trusted "
+        "person or professional, without being alarmist. Keep it under 120 "
+        "words, written directly to the person as 'you'."
+    )
+    mood_block = NL.join(mood_lines) if mood_lines else "No mood entries logged this week."
+    journal_block = NL.join(journal_lines) if journal_lines else "No journal entries this week."
+    user_message = "This week's moods:" + NL + mood_block
+    user_message += NL + NL + "This week's journal entries:" + NL + journal_block
+    if avg is not None:
+        user_message += NL + NL + "Average mood this week: " + str(avg) + "/10."
+    if elevated:
+        user_message += NL + NL + str(elevated) + " elevated/concerning check-in(s) were flagged this week."
+
+    return call_llm(system, user_message, max_tokens=220).strip()
+
 
 # ---------------------------------------------------------------------------
 # Privacy dashboard
+# ---------
 # ---------------------------------------------------------------------------
 
 def page_privacy(db, user):
