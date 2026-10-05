@@ -476,7 +476,9 @@ def render_breathing_exercise():
 
 def page_chat(db, user):
     st.subheader("Chat")
-    st.caption(f"Start whenever you're ready — you're chatting with {COMPANION_NAME}. There's no wrong way to begin.")
+    _prefs_for_chat = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
+    companion_name = ((_prefs_for_chat.notification_settings or {}).get("companion_name") if _prefs_for_chat else None) or COMPANION_NAME
+    st.caption(f"Start whenever you're ready — you're chatting with {companion_name}. There's no wrong way to begin.")
 
     LANGUAGES = ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati"]
     st.session_state.setdefault("chat_language", "English")
@@ -630,6 +632,7 @@ def page_chat(db, user):
     ai_reply = conversation_agent.generate_response(
         prompt, directive, assessment.concern_level, language=st.session_state["chat_language"],
         history=st.session_state["chat_history"][-8:],
+        companion_name=companion_name,
     )
 
     ai_msg = models.Message(chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"]))
@@ -651,7 +654,7 @@ def page_chat(db, user):
 
     with st.chat_message("assistant"):
         _typing_ph = st.empty()
-        _typing_ph.write(COMPANION_NAME + " is typing...")
+        _typing_ph.write(companion_name + " is typing...")
         time.sleep(min(0.4 + len(ai_reply["text"]) / 180, 2.2))
 
     st.session_state["chat_history"].append({"sender": "user", "text": prompt})
@@ -989,6 +992,16 @@ def page_privacy(db, user):
         prefs.notification_settings = settings
         db.commit()
         st.success("Reminder preference saved." if reminder_on else "Reminders turned off.")
+
+    st.divider()
+    st.write("**Chat companion name**")
+    st.caption("Choose what to call your AI companion in the Chat page.")
+    new_companion_name = st.text_input("Companion name", value=settings.get("companion_name", "Mitra"), max_chars=30)
+    if new_companion_name.strip() and new_companion_name.strip() != settings.get("companion_name", "Mitra"):
+        settings["companion_name"] = new_companion_name.strip()
+        prefs.notification_settings = settings
+        db.commit()
+        st.success("Your companion is now called " + new_companion_name.strip() + ".")
 
 
     if settings.get("totp_enabled"):
