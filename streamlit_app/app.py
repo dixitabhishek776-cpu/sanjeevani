@@ -184,6 +184,35 @@ def streak_badge_for(streak: int) -> str:
     return f"{reached[-1]}-day badge 🏅" if reached else ""
 
 
+def render_badge_gallery(current_streak, longest_streak):
+    """Row of milestone badges. "Earned" is based on the longest streak
+    ever reached, not the current one -- a badge, once unlocked, stays
+    unlocked even if today's streak later breaks."""
+    cards = []
+    for m in STREAK_MILESTONES:
+        earned = longest_streak >= m
+        in_progress = (not earned) and current_streak > 0 and m == next((x for x in STREAK_MILESTONES if x > longest_streak), None)
+        if earned:
+            style = "background:linear-gradient(135deg, #8B5CF6, #6752D7);color:#FFFFFF;box-shadow:0 8px 20px rgba(112,78,210,0.3);"
+            icon = "🏅"
+        elif in_progress:
+            style = "background:#F3EEFF;color:#6752D7;border:2px dashed #B9A6F2;"
+            icon = "⏳"
+        else:
+            style = "background:#EFEDF2;color:#B3AEBF;"
+            icon = "🔒"
+        cards.append(
+            '<div style="' + style + 'width:70px;height:86px;border-radius:16px;'
+            'display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            'gap:4px;font-weight:700;flex-shrink:0;">'
+            '<div style="font-size:21px;">' + icon + '</div>'
+            '<div style="font-size:12px;">' + str(m) + 'd</div>'
+            '</div>'
+        )
+    html = '<div style="display:flex;gap:9px;overflow-x:auto;padding:4px 2px 10px 2px;">' + ''.join(cards) + '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def _log_audit(db, actor_id, action, target_type, target_id, metadata):
     db.add(models.AuditLog(
         actor_id=actor_id, action=action, target_type=target_type,
@@ -861,6 +890,15 @@ def page_summary(db, user):
         st.warning(f"{elevated} elevated wellbeing check-in(s) this week — consider reviewing how you're feeling.")
     if not (moods or journals or chats):
         st.caption("No activity recorded this week. A small check-in can be a useful place to start.")
+
+    st.markdown("---")
+    st.markdown("#### 🏅 Streak badges")
+    _cur_streak, _longest_streak = compute_mood_streak(db, user)
+    render_badge_gallery(_cur_streak, _longest_streak)
+    st.caption(
+        "Current streak: " + str(_cur_streak) + " day" + ("s" if _cur_streak != 1 else "")
+        + " · Longest: " + str(_longest_streak) + " days"
+    )
 
     st.markdown("---")
     st.markdown("#### ✨ Your weekly reflection")
