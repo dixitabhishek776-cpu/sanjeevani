@@ -1398,10 +1398,18 @@ def page_screening(db, user):
             max_score = 21
         severity = next(label for cutoff, label in bands if total <= cutoff)
 
+        db.add(models.ScreeningResult(
+            user_id=user.id,
+            tool="phq9" if is_phq else "gad7",
+            total_score=total,
+            severity=severity,
+        ))
+        db.commit()
+
         st.metric(f"{tool.split(' ')[0]} score", f"{total}/{max_score}")
         st.write(f"**Severity band: {severity}**")
         st.caption(
-            "This score is not saved \u2014 it is only shown to you in this session. "
+            "This result is saved to your account so you can see how things change over time. "
             "If this concerns you, consider discussing it with a doctor or mental health professional."
         )
 
@@ -1468,6 +1476,42 @@ def handle_email_verification_link():
     st.query_params.clear()
 
 
+def check_screening_nudge(db, user):
+    """Looks at recent mood history and how long it has been since the
+    user's last PHQ-9/GAD-7, and decides whether a gentle nudge is
+    warranted -- not every low mood, just a sustained pattern, and not
+    more than once every couple of weeks."""
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)
+    rows = db.query(models.MoodEntry.mood_score).filter(
+        models.MoodEntry.user_id == user.id,
+        models.MoodEntry.logged_at >= cutoff,
+    ).all()
+    scores = [r[0] for r in rows]
+    if len(scores) < 3:
+        return None
+    avg = sum(scores) / len(scores)
+    if avg > 4.5:
+        return None
+
+    last_row = db.query(models.ScreeningResult.taken_at).filter(
+        models.ScreeningResult.user_id == user.id,
+    ).order_by(models.ScreeningResult.taken_at.desc()).first()
+
+    if last_row:
+        last_dt = last_row[0]
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=dt.timezone.utc)
+        days_since = (dt.datetime.now(dt.timezone.utc) - last_dt).days
+        if days_since < 14:
+            return None
+
+    return (
+        "Your mood check-ins over the last " + str(len(scores)) + " entries have been on the "
+        "lower side. A quick PHQ-9 or GAD-7 check-in might help give you a clearer picture \u2014 "
+        "it only takes a couple of minutes."
+    )
+
+
 def main():
     render_banner()
     inject_pwa_support()
@@ -1508,6 +1552,16 @@ def main():
                     app_url = os.getenv("SANJEEVANI_APP_URL", "https://sanjeevani-w3yji9hmnzsljkkqtkrxpe.streamlit.app")
                     sent = email_service.send_verification_email(user.email, f"{app_url}/?verify={verify_raw}")
                     st.success("Sent!" if sent else "Email delivery isn't configured on this deployment.")
+
+        nudge_msg = check_screening_nudge(db, user)
+        if nudge_msg and not st.session_state.get("screening_nudge_dismissed"):
+            ncol1, ncol2 = st.columns([5, 1])
+            with ncol1:
+                st.info("🌱 " + nudge_msg)
+            with ncol2:
+                if st.button("Dismiss", key="dismiss_screening_nudge"):
+                    st.session_state["screening_nudge_dismissed"] = True
+                    st.rerun()
 
         with st.sidebar:
             st.markdown('<div class="amrit-brand"><div class="amrit-brand-logo"><span>🪷</span></div><div><div class="amrit-brand-name">Sanjeevani</div><div class="amrit-brand-sub">AMRIT</div></div></div>', unsafe_allow_html=True)

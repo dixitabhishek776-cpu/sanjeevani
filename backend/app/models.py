@@ -93,6 +93,16 @@ class MoodEntry(Base):
     __table_args__ = (CheckConstraint("mood_score BETWEEN 1 AND 10"),)
 
 
+class ScreeningResult(Base):
+    __tablename__ = "screening_results"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    tool = Column(String, nullable=False)
+    total_score = Column(SmallInteger, nullable=False)
+    severity = Column(String, nullable=False)
+    taken_at = Column(DateTime(timezone=True), default=dt.datetime.utcnow)
+
+
 class Journal(Base):
     __tablename__ = "journals"
     id = Column(UUID(as_uuid=True), primary_key=True, default=gen_uuid)
