@@ -503,6 +503,44 @@ def render_breathing_exercise():
     )
 
 
+def _render_profile_tab(db, user):
+    st.write("**Account**")
+    st.text_input("Email", value=user.email, disabled=True)
+    if user.created_at:
+        st.caption("Member since " + user.created_at.strftime("%d %b %Y"))
+    if user.role != "user":
+        st.caption("Role: " + user.role)
+
+    st.divider()
+    st.write("**Display name**")
+    new_name = st.text_input("Display name", value=user.display_name or "", max_chars=100)
+    if st.button("Save name"):
+        user.display_name = new_name.strip() or None
+        db.commit()
+        st.success("Display name updated.")
+        st.rerun()
+
+    st.divider()
+    st.write("**Change password**")
+    with st.form("change_password_form"):
+        current_pw = st.text_input("Current password", type="password")
+        new_pw = st.text_input("New password", type="password")
+        confirm_pw = st.text_input("Confirm new password", type="password")
+        pw_submitted = st.form_submit_button("Update password")
+    if pw_submitted:
+        if not verify_password(current_pw, user.password_hash):
+            st.error("Current password is incorrect.")
+        elif len(new_pw) < 8:
+            st.error("New password must be at least 8 characters.")
+        elif new_pw != confirm_pw:
+            st.error("New passwords don't match.")
+        else:
+            user.password_hash = hash_password(new_pw)
+            _log_audit(db, user.id, "password_changed", "user", user.id, {})
+            db.commit()
+            st.success("Password updated.")
+
+
 def _render_preferences_tab(db, user):
     prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
     if not prefs:
@@ -568,9 +606,11 @@ def _render_preferences_tab(db, user):
 def page_settings(db, user):
     st.subheader("Settings")
     st.caption("Personalize how Sanjeevani looks and talks to you, and manage your account.")
-    tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
-        ["Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
+    tab_profile, tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
+        ["Profile", "Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
     )
+    with tab_profile:
+        _render_profile_tab(db, user)
     with tab_prefs:
         _render_preferences_tab(db, user)
     with tab_screening:
