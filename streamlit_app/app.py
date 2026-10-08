@@ -1678,7 +1678,13 @@ def main():
 
         with st.sidebar:
             st.markdown('<div class="amrit-brand"><div class="amrit-brand-logo"><span>🪷</span></div><div><div class="amrit-brand-name">Sanjeevani</div><div class="amrit-brand-sub">AMRIT</div></div></div>', unsafe_allow_html=True)
-            st.write(f"Signed in as **{user.display_name or user.email}**")
+            _sb_name_col, _sb_avatar_col = st.columns([4, 1])
+            with _sb_name_col:
+                st.write(f"Signed in as **{user.display_name or user.email}**")
+            with _sb_avatar_col:
+                _avatar_label = (user.display_name or user.email or "?")[0].upper()
+                with st.popover(_avatar_label):
+                    page_profile(db, user)
             current_streak, longest_streak = compute_mood_streak(db, user)
             if current_streak > 0:
                 badge = streak_badge_for(current_streak)
@@ -1700,12 +1706,6 @@ def main():
                 clear_session_cookie()
                 st.session_state.clear()
                 st.rerun()
-
-        _col_spacer, _col_profile = st.columns([10, 1])
-        with _col_profile:
-            _avatar_label = (user.display_name or user.email or "?")[0].upper()
-            with st.popover(_avatar_label):
-                page_profile(db, user)
 
         if choice == "Chat":
             run_page_safely(page_chat, db, user)
