@@ -323,9 +323,128 @@ def render_banner():
 # Auth pages
 # ---------------------------------------------------------------------------
 
+PRIVACY_POLICY_MD = """
+Last updated: October 2026
+
+Sanjeevani ("we", "our", "the app") is an AI-guided emotional wellness companion. This Privacy Policy explains what information we collect, how we use it, and the choices you have.
+
+### 1. Information We Collect
+- Account information: your email address, a securely hashed password, and an optional display name.
+- Wellness data you choose to share: mood check-ins, journal entries, chat conversations, and screening questionnaire results (PHQ-9 / GAD-7).
+- Emergency contacts you choose to add, if you enable that feature.
+- Audit logs of security-relevant account actions (e.g. sign-ins, preference changes), to help keep your account safe.
+- Voice input, if you use the microphone feature: your recording is sent to a third-party speech-to-text service to be converted to text, and is not stored as audio by us afterward.
+
+### 2. How We Use Your Information
+- To provide the core features of the app: mood tracking, journaling, AI chat support, and screening tools.
+- To generate AI responses, your chat messages and relevant context are sent to third-party AI providers (Groq and, as a fallback, Google Gemini) for processing. We do not control their independent data practices and encourage you to review their policies too.
+- To detect signs of acute distress or crisis risk in conversations, so we can show you relevant crisis resources immediately. In limited, higher-concern cases, a flagged conversation summary may be reviewed internally by a designated reviewer for safety purposes -- this review does not replace professional or emergency care.
+- To send account-related emails (e.g. email verification, optional daily reminders), where applicable.
+
+### 3. How We Protect Your Information
+- Sensitive content -- mood notes, journal entries, and chat messages -- is encrypted per-user before being stored.
+- Passwords are stored as salted cryptographic hashes, never in plain text.
+- You may optionally enable two-factor authentication (2FA) for extra account security.
+
+### 4. Your Rights and Choices
+- You can export a copy of your data (mood entries and journal entries) in JSON format at any time from Settings.
+- You can delete your account at any time from the same page. Deletion revokes your encryption key and marks your account as deleted; some records may be retained only as required for legitimate operational or legal purposes.
+- You can opt in or out of specific features (long-term memory, voice analysis, research participation, emergency contacts) individually.
+- If you are a resident of India, you have rights under the Digital Personal Data Protection Act, 2023 (DPDP Act) regarding your personal data, including the right to access, correct, and erase your data, and to withdraw consent.
+
+### 5. Data Retention
+We retain your data for as long as your account is active, or as needed to provide the service. If you delete your account, we stop using your data for active processing; some data may be retained briefly for legal, security, or operational purposes.
+
+### 6. Children
+Sanjeevani is not directed at children under 18.
+
+### 7. Third-Party Services
+We rely on AI language model providers, speech-to-text providers, cloud database and application hosting providers, and email delivery providers to operate Sanjeevani. Each processes limited data on our behalf under their own privacy practices.
+
+### 8. Not a Substitute for Professional Care
+Sanjeevani is a wellness support tool and does not provide medical diagnosis, treatment, or emergency crisis intervention. If you are in crisis, please contact a local emergency service or crisis helpline immediately.
+
+### 9. Changes to This Policy
+We may update this Privacy Policy from time to time; the "Last updated" date above will change when we do.
+
+### 10. Contact Us
+Questions about this Privacy Policy can be sent to: dixitabhishek776@gmail.com
+"""
+
+TERMS_OF_SERVICE_MD = """
+Last updated: October 2026
+
+These Terms of Service ("Terms") govern your use of Sanjeevani (the "App"). By creating an account or using the App, you agree to these Terms.
+
+### 1. Not a Medical or Emergency Service
+Sanjeevani provides AI-guided emotional support, mood tracking, journaling, and self-report screening tools. It is **not** a substitute for professional diagnosis, treatment, or therapy, nor a crisis intervention or emergency service, and it has not been reviewed or certified by a medical or clinical body.
+
+If you are experiencing a mental health emergency or having thoughts of self-harm,please contact a local emergency service or a crisis helpline immediately. Resources are shown throughout the App.
+
+### 2. Eligibility
+You must be at least 18 years old to create an account and use Sanjeevani.
+
+### 3. Your Account
+You are responsible for keeping your account credentials confidential and for providing accurate information when creating your account. You may delete your account at any time from Settings.
+
+### 4. Acceptable Use
+You agree not to use the App for any unlawful purpose, attempt to interfere with or gain unauthorized access to the App or its systems, or misuse the AI chat feature to generate harmful content directed at others.
+
+### 5. AI-Generated Content
+Responses from the AI companion are generated by large language models and may occasionally be inaccurate, incomplete, or inappropriate. Use your own judgment, and do not rely on AI responses for medical, legal, or financial decisions.
+
+### 6. Screening Tools
+The PHQ-9 and GAD-7 questionnaires are standardized, publicly available screening instruments. Your results are a self-report screening indicator only, not a diagnosis, and should be discussed with a qualified professional if you have concerns.
+
+### 7. Service Availability
+Sanjeevani is provided on an "as is" and "as available" basis. We do not guarantee uninterrupted or error-free operation, and features may change or be discontinued at any time.
+
+### 8. Limitation of Liability
+To the fullest extent permitted by law, Sanjeevani and its developer are not liable for indirect, incidental, or consequential damages arising from your use of the App, including decisions made based on AI-generated content or screening results.
+
+### 9. Changes to These Terms
+We may update these Terms from time to time. Continued use of the App after changes are posted means you accept the updated Terms.
+
+### 10. Governing Law
+These Terms are governed by the laws of India.
+
+### 11. Contact Us
+Questions about these Terms can be sent to: dixitabhishek776@gmail.com
+"""
+
+
+def page_privacy_policy():
+    if st.button("← Back"):
+        st.session_state["onboarding_stage"] = st.session_state.get("_prior_onboarding_stage", "intro")
+        st.rerun()
+    st.title("Privacy Policy")
+    st.markdown(PRIVACY_POLICY_MD)
+
+
+def page_terms_of_service():
+    if st.button("← Back"):
+        st.session_state["onboarding_stage"] = st.session_state.get("_prior_onboarding_stage", "intro")
+        st.rerun()
+    st.title("Terms of Service")
+    st.markdown(TERMS_OF_SERVICE_MD)
+
+
 def page_login_register():
     st.title("🌱 Sanjeevani")
     st.write("A space to reflect. Not a substitute for therapy or medical care.")
+
+    _lcol1, _lcol2 = st.columns(2)
+    with _lcol1:
+        if st.button("📄 Privacy Policy", use_container_width=True):
+            st.session_state["_prior_onboarding_stage"] = "auth"
+            st.session_state["onboarding_stage"] = "privacy_policy"
+            st.rerun()
+    with _lcol2:
+        if st.button("📄 Terms of Service", use_container_width=True):
+            st.session_state["_prior_onboarding_stage"] = "auth"
+            st.session_state["onboarding_stage"] = "terms_of_service"
+            st.rerun()
+    st.divider()
 
     tab_login, tab_register = st.tabs(["Sign in", "Create account"])
 
@@ -1088,6 +1207,10 @@ def generate_weekly_insight(db, user, moods, journal_entries, elevated, avg):
 def page_privacy(db, user):
     st.markdown('<style>.privacy-card{display:flex;align-items:flex-start;gap:14px;padding:16px;border-radius:20px;margin-bottom:14px;background:rgba(236,253,245,0.65);border:1px solid #D5F4E5;}.privacy-icon{width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:12px;background:white;font-size:17px;}</style><div class="privacy-card"><div class="privacy-icon">🛡️</div><div><strong>Your data, your control</strong><br/><span style="font-size:11px;color:#5c6b60;">Export or delete anytime. Everything sensitive is encrypted per-user.</span></div></div>', unsafe_allow_html=True)
     st.subheader("Privacy & data")
+    with st.expander("📄 Privacy Policy"):
+        st.markdown(PRIVACY_POLICY_MD)
+    with st.expander("📄 Terms of Service"):
+        st.markdown(TERMS_OF_SERVICE_MD)
     prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
     if not prefs:
         prefs = models.UserPreferences(user_id=user.id)
@@ -1424,6 +1547,19 @@ def page_intro():
             st.session_state["onboarding_stage"] = "auth"
             st.rerun()
 
+    st.write("")
+    _icol1, _icol2 = st.columns(2)
+    with _icol1:
+        if st.button("📄 Privacy Policy", use_container_width=True, key="intro_privacy_btn"):
+            st.session_state["_prior_onboarding_stage"] = "intro"
+            st.session_state["onboarding_stage"] = "privacy_policy"
+            st.rerun()
+    with _icol2:
+        if st.button("📄 Terms of Service", use_container_width=True, key="intro_terms_btn"):
+            st.session_state["_prior_onboarding_stage"] = "intro"
+            st.session_state["onboarding_stage"] = "terms_of_service"
+            st.rerun()
+
 
 # ---------------------------------------------------------------------------
 # Main app / navigation
@@ -1618,6 +1754,10 @@ def main():
         st.session_state.setdefault("onboarding_stage", "intro")
         if st.session_state["onboarding_stage"] == "intro":
             run_page_safely(page_intro)
+        elif st.session_state["onboarding_stage"] == "privacy_policy":
+            run_page_safely(page_privacy_policy)
+        elif st.session_state["onboarding_stage"] == "terms_of_service":
+            run_page_safely(page_terms_of_service)
         else:
             run_page_safely(page_login_register)
         return
