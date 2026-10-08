@@ -503,26 +503,81 @@ def render_breathing_exercise():
     )
 
 
+def page_settings(db, user):
+    st.subheader("Settings")
+    st.caption("Personalize how Sanjeevani looks and talks to you.")
+    prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
+    if not prefs:
+        prefs = models.UserPreferences(user_id=user.id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+    settings = prefs.notification_settings or {}
+
+    st.write("**Chat companion name**")
+    st.caption("Choose what to call your AI companion in the Chat page.")
+    new_companion_name = st.text_input("Companion name", value=settings.get("companion_name", "Mitra"), max_chars=30)
+    if new_companion_name.strip() and new_companion_name.strip() != settings.get("companion_name", "Mitra"):
+        settings["companion_name"] = new_companion_name.strip()
+        prefs.notification_settings = settings
+        db.commit()
+        st.success("Your companion is now called " + new_companion_name.strip() + ".")
+
+    st.divider()
+    st.write("**Language**")
+    _LANGUAGES = ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati"]
+    _current_lang = settings.get("chat_language", "English")
+    new_lang = st.selectbox("Reply language", _LANGUAGES, index=_LANGUAGES.index(_current_lang) if _current_lang in _LANGUAGES else 0)
+    if new_lang != _current_lang:
+        settings["chat_language"] = new_lang
+        prefs.notification_settings = settings
+        db.commit()
+        st.session_state["chat_language"] = new_lang
+        st.success("Language updated.")
+
+    st.divider()
+    st.write("**Voice**")
+    speak_on = st.checkbox("🔊 Read replies aloud automatically", value=settings.get("speak_replies", False))
+    if speak_on != settings.get("speak_replies", False):
+        settings["speak_replies"] = speak_on
+        prefs.notification_settings = settings
+        db.commit()
+        st.session_state["speak_replies"] = speak_on
+        st.success("Voice preference saved.")
+
+    st.divider()
+    st.write("**Automatic assist**")
+    st.caption("Let the AI gently suggest mood check-ins / screenings based on our chat — never saves anything without your confirmation.")
+    auto_on = st.checkbox("Enable automatic assist", value=settings.get("automation_enabled", False))
+    if auto_on != settings.get("automation_enabled", False):
+        settings["automation_enabled"] = auto_on
+        prefs.notification_settings = settings
+        db.commit()
+        st.session_state["automation_enabled"] = auto_on
+        st.success("Automatic assist preference saved.")
+
+    st.divider()
+    st.write("**Theme**")
+    dark_on = st.checkbox("🌙 Darkmode", value=settings.get("dark_mode", False))
+    if dark_on != settings.get("dark_mode", False):
+        settings["dark_mode"] = dark_on
+        prefs.notification_settings = settings
+        db.commit()
+        st.success("Theme updated.")
+        st.rerun()
+
+
 def page_chat(db, user):
     st.subheader("Chat")
     _prefs_for_chat = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
-    companion_name = ((_prefs_for_chat.notification_settings or {}).get("companion_name") if _prefs_for_chat else None) or COMPANION_NAME
+    _settings_for_chat = (_prefs_for_chat.notification_settings or {}) if _prefs_for_chat else {}
+    companion_name = _settings_for_chat.get("companion_name") or COMPANION_NAME
     st.caption(f"Start whenever you're ready — you're chatting with {companion_name}. There's no wrong way to begin.")
+    st.caption("🎛️ You can change language, voice, and automatic assist anytime in **Settings**.")
 
-    LANGUAGES = ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati"]
-    st.session_state.setdefault("chat_language", "English")
-    col_a, col_b = st.columns([2, 1])
-    with col_a:
-        st.selectbox("Language", LANGUAGES, key="chat_language")
-    with col_b:
-        st.session_state.setdefault("speak_replies", False)
-        st.checkbox("🔊 Read replies aloud", key="speak_replies")
-    st.session_state.setdefault("automation_enabled", False)
-    st.checkbox(
-        "🤖 Automatic assist (AI gently suggests mood check-ins / screenings "
-        "based on our chat — never saves anything without your confirmation)",
-        key="automation_enabled",
-    )
+    st.session_state.setdefault("chat_language", _settings_for_chat.get("chat_language", "English"))
+    st.session_state.setdefault("speak_replies", _settings_for_chat.get("speak_replies", False))
+    st.session_state.setdefault("automation_enabled", _settings_for_chat.get("automation_enabled", False))
 
     if "chat_id" not in st.session_state:
         st.session_state["chat_id"] = None
@@ -574,7 +629,11 @@ def page_chat(db, user):
                 height=0,
             )
 
-    audio_value = st.audio_input("Or record your message")
+    _mic_col1, _mic_col2 = st.columns([6, 1])
+    with _mic_col2:
+        with st.popover("🎤"):
+            st.caption("Record a voice message")
+            audio_value = st.audio_input("Record your message", label_visibility="collapsed")
     prompt = st.chat_input("Type how you're feeling...")
 
     if audio_value is not None:
@@ -1012,17 +1071,6 @@ def page_privacy(db, user):
         prefs.notification_settings = settings
         db.commit()
         st.success("Reminder preference saved." if reminder_on else "Reminders turned off.")
-
-    st.divider()
-    st.write("**Chat companion name**")
-    st.caption("Choose what to call your AI companion in the Chat page.")
-    new_companion_name = st.text_input("Companion name", value=settings.get("companion_name", "Mitra"), max_chars=30)
-    if new_companion_name.strip() and new_companion_name.strip() != settings.get("companion_name", "Mitra"):
-        settings["companion_name"] = new_companion_name.strip()
-        prefs.notification_settings = settings
-        db.commit()
-        st.success("Your companion is now called " + new_companion_name.strip() + ".")
-
 
     if settings.get("totp_enabled"):
         st.success("2FA is enabled on your account.")
@@ -1536,6 +1584,16 @@ def main():
             st.rerun()
             return
 
+        _prefs_for_theme = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
+        if _prefs_for_theme and (_prefs_for_theme.notification_settings or {}).get("dark_mode"):
+            st.markdown(
+                '<style>.stApp{background-color:#121212;color:#EDEDED;}'
+                'section[data-testid="stSidebar"]{background-color:#1A1A1A;}'
+                '.stApp p, .stApp span, .stApp label, .stApp div{color:#EDEDED;}'
+                '</style>',
+                unsafe_allow_html=True,
+            )
+
         if user.email_verified_at is None:
             col1, col2 = st.columns([4, 1])
             with col1:
@@ -1578,7 +1636,7 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Screening", "Privacy & data", "Emergency contacts"]
+            pages = ["Chat", "Settings", "Mood", "Journal", "Weekly summary", "Screening", "Privacy & data", "Emergency contacts"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("Reviewer dashboard")
             pages.append("System status")
@@ -1591,6 +1649,8 @@ def main():
 
         if choice == "Chat":
             run_page_safely(page_chat, db, user)
+        elif choice == "Settings":
+            run_page_safely(page_settings, db, user)
         elif choice == "Mood":
             run_page_safely(page_mood, db, user)
         elif choice == "Journal":
