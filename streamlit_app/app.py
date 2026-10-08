@@ -8,8 +8,9 @@ own per-browser session_state replaces the JWT/refresh-token dance
 entirely, which is what eliminates the class of auth bugs the
 Render+Vercel split kept hitting.
 
-This is still a PORTFOLIO DEMO, not a certified mental-health service —
-see the banner rendered on every page.
+Sanjeevani is an AI-guided emotional wellness companion. It is not a
+replacement for professional diagnosis, therapy, or emergency care --
+see the notice rendered on every page.
 """
 import os
 import requests
@@ -221,7 +222,7 @@ def _log_audit(db, actor_id, action, target_type, target_id, metadata):
 
 
 # ---------------------------------------------------------------------------
-# Demo banner — always visible, every page
+# Safety notice — always visible, every page
 # ---------------------------------------------------------------------------
 
 def render_banner():
@@ -304,13 +305,13 @@ def render_banner():
     )
     st.markdown(
         """
-        <div style="background:#b91c1c;color:#fff;padding:10px 16px;
-        border-radius:6px;text-align:center;font-size:14px;font-weight:600;
-        margin-bottom:16px;line-height:1.4;">
-        ⚠️ PORTFOLIO DEMO — This is a student engineering project, not a
-        real crisis-support service. It has not been clinically or legally
-        reviewed. If you are in crisis, please contact a real local
-        emergency service or crisis line instead.
+        <div style="background:#FFF4E5;color:#7A4A00;padding:10px 16px;
+        border-radius:10px;text-align:center;font-size:13px;font-weight:600;
+        margin-bottom:16px;line-height:1.4;border:1px solid #FFE2B8;">
+        🌱 Sanjeevani offers AI-guided emotional support and wellness tools.
+        It is not a substitute for professional diagnosis, therapy, or
+        emergency care. If you're in crisis, please reach out to a crisis
+        line or emergency service right away.
         </div>
         """,
         unsafe_allow_html=True,
@@ -1215,14 +1216,6 @@ def page_privacy(db, user):
             st.success("Account deleted.")
             st.rerun()
 
-    st.divider()
-    if user.role == "user" and os.getenv("SANJEEVANI_DEMO_MODE", "false").lower() in {"1", "true", "yes"}:
-        st.caption("Demo-only: grant yourself reviewer access to try the reviewer dashboard.")
-        if st.button("Grant myself reviewer access (demo)"):
-            user.role = "reviewer"
-            db.commit()
-            st.success("You now have reviewer access. Reload the sidebar to see it.")
-            st.rerun()
 
 
 # ---------------------------------------------------------------------------
