@@ -503,9 +503,7 @@ def render_breathing_exercise():
     )
 
 
-def page_settings(db, user):
-    st.subheader("Settings")
-    st.caption("Personalize how Sanjeevani looks and talks to you.")
+def _render_preferences_tab(db, user):
     prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
     if not prefs:
         prefs = models.UserPreferences(user_id=user.id)
@@ -567,6 +565,24 @@ def page_settings(db, user):
         st.rerun()
 
 
+def page_settings(db, user):
+    st.subheader("Settings")
+    st.caption("Personalize how Sanjeevani looks and talks to you, and manage your account.")
+    tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
+        ["Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
+    )
+    with tab_prefs:
+        _render_preferences_tab(db, user)
+    with tab_screening:
+        page_screening(db, user)
+    with tab_privacy:
+        page_privacy(db, user)
+    with tab_contacts:
+        page_contacts(db, user)
+    with tab_status:
+        page_system_status(db)
+
+
 def page_chat(db, user):
     st.subheader("Chat")
     _prefs_for_chat = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
@@ -600,7 +616,7 @@ def page_chat(db, user):
             if msg.get("suggest_screening"):
                 st.info(
                     "🤖 It sounds like this has been on your mind for a bit — the "
-                    "**Screening** tab (PHQ-9 / GAD-7) in the sidebar might help you check in "
+                    "**Screening** tab under **Settings** (PHQ-9 / GAD-7) might help you check in "
                     "more fully, whenever you're ready."
                 )
             if msg.get("intervention"):
@@ -1636,10 +1652,9 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Settings", "Mood", "Journal", "Weekly summary", "Screening", "Privacy & data", "Emergency contacts"]
+            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Settings"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("Reviewer dashboard")
-            pages.append("System status")
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
             st.divider()
             if st.button("Sign out"):
@@ -1655,18 +1670,10 @@ def main():
             run_page_safely(page_mood, db, user)
         elif choice == "Journal":
             run_page_safely(page_journal, db, user)
-        elif choice == "Screening":
-            run_page_safely(page_screening, db, user)
         elif choice == "Weekly summary":
             run_page_safely(page_summary, db, user)
-        elif choice == "Privacy & data":
-            run_page_safely(page_privacy, db, user)
-        elif choice == "Emergency contacts":
-            run_page_safely(page_contacts, db, user)
         elif choice == "Reviewer dashboard":
             run_page_safely(page_reviewer, db, user)
-        elif choice == "System status":
-            run_page_safely(page_system_status, db)
     finally:
         db.close()
 
