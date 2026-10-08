@@ -1691,7 +1691,7 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Profile", "Mood", "Journal", "Weekly summary", "Settings"]
+            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Settings"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("Reviewer dashboard")
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
@@ -1701,10 +1701,14 @@ def main():
                 st.session_state.clear()
                 st.rerun()
 
+        _col_spacer, _col_profile = st.columns([10, 1])
+        with _col_profile:
+            _avatar_label = (user.display_name or user.email or "?")[0].upper()
+            with st.popover(_avatar_label):
+                page_profile(db, user)
+
         if choice == "Chat":
             run_page_safely(page_chat, db, user)
-        elif choice == "Profile":
-            run_page_safely(page_profile, db, user)
         elif choice == "Settings":
             run_page_safely(page_settings, db, user)
         elif choice == "Mood":
