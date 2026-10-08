@@ -503,7 +503,8 @@ def render_breathing_exercise():
     )
 
 
-def _render_profile_tab(db, user):
+def page_profile(db, user):
+    st.subheader("Profile")
     st.write("**Account**")
     st.text_input("Email", value=user.email, disabled=True)
     if user.created_at:
@@ -606,11 +607,9 @@ def _render_preferences_tab(db, user):
 def page_settings(db, user):
     st.subheader("Settings")
     st.caption("Personalize how Sanjeevani looks and talks to you, and manage your account.")
-    tab_profile, tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
-        ["Profile", "Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
+    tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
+        ["Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
     )
-    with tab_profile:
-        _render_profile_tab(db, user)
     with tab_prefs:
         _render_preferences_tab(db, user)
     with tab_screening:
@@ -1692,7 +1691,7 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Settings"]
+            pages = ["Chat", "Profile", "Mood", "Journal", "Weekly summary", "Settings"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("Reviewer dashboard")
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
@@ -1704,6 +1703,8 @@ def main():
 
         if choice == "Chat":
             run_page_safely(page_chat, db, user)
+        elif choice == "Profile":
+            run_page_safely(page_profile, db, user)
         elif choice == "Settings":
             run_page_safely(page_settings, db, user)
         elif choice == "Mood":
