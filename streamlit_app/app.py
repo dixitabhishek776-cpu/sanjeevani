@@ -891,6 +891,11 @@ def page_chat(db, user):
             db, user.id, "safety_alert_created", "safety_assessment", safety_record.id,
             {"concern_level": assessment.concern_level, "escalation": directive["human_escalation"]},
         )
+        if assessment.concern_level in ("high", "immediate"):
+            email_service.send_admin_alert_email(
+                assessment.concern_level, assessment.explanation,
+                assessment.contributing_factors, str(user.id),
+            )
 
     ai_reply = conversation_agent.generate_response(
         prompt, directive, assessment.concern_level, language=st.session_state["chat_language"],

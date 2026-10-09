@@ -66,6 +66,49 @@ def send_verification_email(to_email: str, verify_link: str) -> bool:
         return False
 
 
+def send_admin_alert_email(concern_level: str, explanation: str, contributing_factors, user_id: str) -> bool:
+    """Notifies the app administrator by email the moment a high/immediate
+    concern-level safety alert is created, so a real person actually finds
+    out in near-real-time instead of relying on someone proactively
+    checking the Reviewer dashboard. Set SANJEEVANI_ADMIN_EMAIL to enable."""
+    api_key = os.getenv("RESEND_API_KEY")
+    admin_email = os.getenv("SANJEEVANI_ADMIN_EMAIL")
+    if not api_key or not admin_email:
+        logger.info("RESEND_API_KEY or SANJEEVANI_ADMIN_EMAIL not set; skipping admin alert email.")
+        return False
+    factors_text = ", ".join(contributing_factors or []) or "none listed"
+    try:
+        resp = requests.post(
+            RESEND_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": FROM_ADDRESS,
+                "to": [admin_email],
+                "subject": "⚠️ Sanjeevani safety alert: " + concern_level.upper(),
+                "html": (
+                    '<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px;">'
+                    '<h2 style="color:#b91c1c;">⚠️ ' + concern_level.upper() + ' concern-level alert</h2>'
+                    '<p><strong>User ID:</strong> ' + user_id + '</p>'
+                    '<p><strong>Contributing factors:</strong> ' + factors_text + '</p>'
+                    '<p><strong>Explanation:</strong> ' + explanation + '</p>'
+                    '<p style="color:#8A968D;font-size:12px;">Open the Reviewer dashboard in the app to '
+                    'review and respond. This is an automated notification from Sanjeevani\'s safety system.</p>'
+                    '</div>'
+                ),
+            },
+            timeout=10,
+        )
+        if resp.status_code >= 300:
+            logger.warning("Admin alert email send failed: %s %s", resp.status_code, resp.text[:200])
+        return resp.status_code < 300
+    except Exception:
+        logger.exception("Admin alert email send failed")
+        return False
+
+
 def send_reminder_email(to_email: str, name: str, app_url: str) -> bool:
     """Daily opt-in check-in reminder. Callers should only send this to
     users who enabled it AND haven't already logged a mood entry today
