@@ -3,13 +3,13 @@ Lightweight, in-process incident recorder.
 
 Not a replacement for real observability (Sentry, Datadog, etc.) — this is
 a small ring buffer of recent errors/retries kept in memory, surfaced on
-the in-app "System status" page so the demo can show its own resilience
-behavior transparently instead of failing silently or crashing.
+the in-app "System status" page so failures and automatic recovery stay
+visible instead of failing silently.
 
-Resets on process restart, which is fine for a demo: the point is to make
-transient failures and automatic recovery visible while the app is running,
-not to be a durable audit trail (AuditLog in models.py already covers the
-things that need to survive restarts).
+Resets on process restart -- the point is to make transient failures and
+automatic recovery visible while the app is running, not to be a durable
+audit trail (AuditLog in models.py already covers the things that need to
+survive restarts).
 """
 import datetime as dt
 import threading
