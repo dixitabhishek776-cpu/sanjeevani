@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sanjeevani</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21c-4.5-2-7.5-5.6-7.5-10A7.5 7.5 0 0 1 12 3a7.5 7.5 0 0 1 7.5 8c0 4.4-3 8-7.5 10Z" fill="url(#g)"/>
+          <path d="M12 21c-2-3.2-2-6.4 0-10" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
+          <path d="M12 11c-2.4-1.6-3.6-3.6-3.2-6" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
+          <path d="M12 11c2.4-1.6 3.6-3.6 3.2-6" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
+          <defs>
+            <linearGradient id="g" x1="4.5" y1="3" x2="19.5" y2="21" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#8B5CF6"/>
+              <stop offset="1" stop-color="#6752D7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>Sanjeevani</strong>
+        <small>Heal &nbsp;·&nbsp; Talk &nbsp;·&nbsp; Grow</small>
+      </span>
+    </div>
+
+    <nav class="nav" aria-label="Main">
+      <a class="nav-item is-active" href="#" data-view="chat">
+        <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4.3 3.3a.6.6 0 0 1-1-.47V5.5Z"/></svg>
+        <span>Chat</span>
+        <em class="badge">3</em>
+      </a>
+      <a class="nav-item" href="#" data-view="home">
+        <svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v8a1.5 1.5 0 0 1-1.5 1.5H14V15a2 2 0 0 0-4 0v5.5H5.5A1.5 1.5 0 0 1 4 19v-8Z"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="nav-item" href="#" data-view="mood">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 14c.9 1.4 2.1 2.1 3.7 2.1s2.8-.7 3.7-2.1" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="9" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="15" cy="10" r="1" fill="#fff" stroke="none"/></svg>
+        <span>Mood Tracker</span>
+      </a>
+      <a class="nav-item" href="#" data-view="journal">
+        <svg viewBox="0 0 24 24"><path d="M6 3.5h9A2.5 2.5 0 0 1 17.5 6v14.5H8A2.5 2.5 0 0 1 5.5 18V6A2.5 2.5 0 0 1 6 3.5Z"/><path d="M8.5 8h5.5M8.5 11.3h5.5M8.5 14.6h3.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span>Journal</span>
+      </a>
+      <a class="nav-item" href="#" data-view="insights">
+        <svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V6M16 20v-7M20 9l-6-5-4 3-6-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Insights</span>
+      </a>
+      <a class="nav-item" href="#" data-view="memory">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5a5.6 5.6 0 0 1 5.5 5.6c0 2.1-1.1 3.3-2 4.3-.7.8-1.1 1.3-1.1 2.3v.8h-4.8v-.8c0-1-.4-1.5-1.1-2.3-.9-1-2-2.2-2-4.3A5.6 5.6 0 0 1 12 3.5Z"/><path d="M9.6 19h4.8M10.2 21h3.6" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>Memory</span>
+      </a>
+      <a class="nav-item" href="#" data-view="contacts">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3"/><path d="M3.8 19c.6-3 2.6-4.6 5.2-4.6s4.6 1.6 5.2 4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="8" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 14.3c1.9.4 3.3 1.7 3.8 3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Contacts</span>
+      </a>
+      <a class="nav-item" href="#" data-view="safety">
+        <svg viewBox="0 0 24 24"><path d="M12 3.3 19 6v5.4c0 4.6-3 7.9-7 9.3-4-1.4-7-4.7-7-9.3V6l7-2.7Z"/><path d="m9.3 12 1.9 1.9 3.6-3.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Safety</span>
+      </a>
+      <a class="nav-item" href="#" data-view="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.6-1.3-1.5-2.6-1.9.6a7 7 0 0 0-1.3-.8L16 5.7h-3l-.3 2.2a7 7 0 0 0-1.3.8l-1.9-.6-1.5 2.6L9.6 12c-.1.5-.1 1 0 1.5L8 14.8l1.5 2.6 1.9-.6c.4.3.9.6 1.3.8l.3 2.2h3l.3-2.2c.4-.2.9-.5 1.3-.8l1.9.6 1.5-2.6-1.6-1.3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-quote">
+      <p>“You matter.<br>Your mental health matters.”</p>
+      <span>— Sanjeevani</span>
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+
+      <label class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        <input type="search" placeholder="Search anything…" />
+      </label>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.8 6.8 0 0 0 20 14.5Z"/></svg>
+        </button>
+        <button class="icon-btn has-dot" aria-label="Notifications">
+          <svg viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 3.2.8 4.9 1.6 5.8.3.4 0 1-.5 1H4.9c-.5 0-.8-.6-.5-1C5.2 14.9 6 13.2 6 10Z"/><path d="M9.5 19a2.6 2.6 0 0 0 5 0" stroke="#fff" stroke-width="0" fill="none"/></svg>
+          <span class="dot">3</span>
+        </button>
+        <button class="profile-chip">
+          <span class="avatar">A</span>
+          <span class="profile-meta">
+            <strong>Abhishek Dixit</strong>
+            <em><i class="status-dot"></i>Online</em>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <div class="placeholder-view">
+        <div class="placeholder-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4.3 3.3a.6.6 0 0 1-1-.47V5.5Z"/></svg>
+        </div>
+        <h1>This is the shell</h1>
+        <p>Sidebar navigation, top bar, theme toggle and layout grid are wired up. The Chat, Mood Tracker, Journal and other screens drop into this content area next.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
