@@ -743,6 +743,78 @@ svg { width: 20px; height: 20px; fill: currentColor; stroke: none; flex-shrink: 
 .mood-entry-body span { display: block; font-size: .79rem; color: var(--text-faint); margin-top: 2px; }
 .mood-entry time { font-size: .74rem; color: var(--text-faint); flex-shrink: 0; }
 
+/* ---------- Journal / Insights / Memory views ---------- */
+
+.journal-view, .insights-view, .memory-view { overflow-y: auto; height: calc(100vh - 69px); }
+
+.week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 140px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px 12px;
+  margin-bottom: 18px;
+}
+.week-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+}
+.week-bar::before {
+  content: "";
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  height: var(--h);
+  border-radius: 7px 7px 3px 3px;
+  background: var(--border);
+}
+.week-bar.is-today::before { background: linear-gradient(180deg, var(--purple-500), var(--purple-600)); }
+.week-bar span { margin-top: 8px; font-size: .7rem; color: var(--text-faint); font-weight: 600; }
+
+.theme-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.theme-chip {
+  font-size: .79rem;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--active-bg);
+  color: var(--active-fg);
+}
+
+.memory-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+.memory-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+.memory-item span { font-size: .85rem; line-height: 1.4; }
+.mem-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: var(--surface-2);
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.mem-remove svg { width: 13px; height: 13px; }
+.mem-remove:hover { background: rgba(220, 38, 38, .1); color: #dc2626; }
+
 /* ---------- Settings view ---------- */
 
 .settings-view { overflow-y: auto; height: calc(100vh - 69px); }

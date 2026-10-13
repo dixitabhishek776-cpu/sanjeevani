@@ -491,6 +491,160 @@
         </div>
       </section>
 
+      <!-- ===== Journal view ===== -->
+      <section class="journal-view" id="view-journal" hidden>
+        <div class="settings-inner">
+          <div class="home-greeting">
+            <h1>Journal</h1>
+            <p>A private space to write freely.</p>
+          </div>
+
+          <div class="journal-prompt-card">
+            <span class="journal-label">TODAY'S PROMPT</span>
+            <h3>Write freely, feel lightly 📖</h3>
+            <p>What's one thing that happened today that you haven't told anyone yet?</p>
+            <textarea class="mood-note" id="journalEntry" style="min-height:120px;margin-bottom:14px;" placeholder="Start writing…"></textarea>
+            <button class="save-btn" type="button" id="journalSaveBtn">
+              <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Save Entry
+            </button>
+          </div>
+
+          <h3 class="section-title">Past entries</h3>
+          <div class="mood-history">
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">🙂</span>
+              <div class="mood-entry-body">
+                <strong>Finished my assignment early</strong>
+                <span>Felt proud I managed my time well today, want to keep this up…</span>
+              </div>
+              <time>Today</time>
+            </div>
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">😐</span>
+              <div class="mood-entry-body">
+                <strong>Exam nerves</strong>
+                <span>Couldn't stop thinking about the upcoming test, tried breathing…</span>
+              </div>
+              <time>Yesterday</time>
+            </div>
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">😄</span>
+              <div class="mood-entry-body">
+                <strong>Good call with family</strong>
+                <span>Talked to mom for an hour, feel lighter after sharing…</span>
+              </div>
+              <time>2 days ago</time>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Insights view ===== -->
+      <section class="insights-view" id="view-insights" hidden>
+        <div class="settings-inner">
+          <div class="home-greeting">
+            <h1>Insights</h1>
+            <p>Trends from your mood and conversations.</p>
+          </div>
+
+          <div class="stat-grid">
+            <article class="stat-card">
+              <div class="mini-score" style="background:radial-gradient(circle, var(--surface) 57%, transparent 58%),conic-gradient(var(--purple-500) 0deg, var(--purple-500) 266deg, var(--border) 266deg, var(--border) 360deg)">
+                <strong>7.4</strong>
+              </div>
+              <div><strong class="no-margin">Avg mood</strong><span>Last 7 days</span></div>
+            </article>
+            <article class="stat-card">
+              <span class="stat-icon tone-green">
+                <svg viewBox="0 0 24 24"><path d="M6 3.5h9A2.5 2.5 0 0 1 17.5 6v14.5H8A2.5 2.5 0 0 1 5.5 18V6A2.5 2.5 0 0 1 6 3.5Z"/></svg>
+              </span>
+              <div><strong>18</strong><span>Journal entries</span></div>
+            </article>
+            <article class="stat-card">
+              <span class="stat-icon tone-amber">
+                <svg viewBox="0 0 24 24"><path d="M12 2.5c1 3 .5 4.3-.8 5.8-1.6 1.8-2.7 3.4-2.7 5.7a5.5 5.5 0 0 0 11 0c0-2-1-3.6-1.8-4.8.4 2-.3 3-1.2 3.6-.2-2.3-1.4-3.8-2.6-5-1-1-1.8-2.3-1.9-5.3Z"/></svg>
+              </span>
+              <div><strong>12 days</strong><span>Longest streak</span></div>
+            </article>
+          </div>
+
+          <h3 class="section-title">This week's mood</h3>
+          <div class="week-chart">
+            <div class="week-bar" style="--h:35%"><span>Mon</span></div>
+            <div class="week-bar" style="--h:55%"><span>Tue</span></div>
+            <div class="week-bar" style="--h:45%"><span>Wed</span></div>
+            <div class="week-bar" style="--h:70%"><span>Thu</span></div>
+            <div class="week-bar" style="--h:60%"><span>Fri</span></div>
+            <div class="week-bar" style="--h:85%"><span>Sat</span></div>
+            <div class="week-bar is-today" style="--h:74%"><span>Sun</span></div>
+          </div>
+
+          <h3 class="section-title">Common themes</h3>
+          <div class="theme-chips">
+            <span class="theme-chip">Exams &amp; Study</span>
+            <span class="theme-chip">Family</span>
+            <span class="theme-chip">Overthinking</span>
+            <span class="theme-chip">Sleep</span>
+            <span class="theme-chip">Friendships</span>
+          </div>
+
+          <div class="journal-prompt-card" style="margin-top:18px;">
+            <span class="journal-label">THIS WEEK, IN SHORT</span>
+            <h3>Steadier than last week 🌱</h3>
+            <p>Your mood trended up after Wednesday, especially around conversations with family. Exam stress still shows up in your evening check-ins — short breathing breaks seemed to help on the days you logged them.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Memory view ===== -->
+      <section class="memory-view" id="view-memory" hidden>
+        <div class="settings-inner">
+          <div class="home-greeting">
+            <h1>Memory</h1>
+            <p>What Amrit remembers about you, to offer better support.</p>
+          </div>
+
+          <h3 class="section-title">About you</h3>
+          <div class="memory-list">
+            <div class="memory-item">
+              <span>Final-year student, currently preparing for exams</span>
+              <button class="mem-remove" aria-label="Forget this" type="button">
+                <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <div class="memory-item">
+              <span>Finds it helpful to talk through study plans step by step</span>
+              <button class="mem-remove" aria-label="Forget this" type="button">
+                <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <div class="memory-item">
+              <span>Close with family, especially finds calls with mom comforting</span>
+              <button class="mem-remove" aria-label="Forget this" type="button">
+                <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <h3 class="section-title">Recent topics</h3>
+          <div class="theme-chips">
+            <span class="theme-chip">Study plan</span>
+            <span class="theme-chip">Deep breathing</span>
+            <span class="theme-chip">Exam stress</span>
+            <span class="theme-chip">Family support</span>
+          </div>
+
+          <div class="status-strip tone-green" style="margin-top:18px;">
+            <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div>
+              <strong>You're always in control</strong>
+              <span>Remove any memory above, or clear everything from Settings → Data &amp; Privacy.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== Settings view ===== -->
       <section class="settings-view" id="view-settings" hidden>
         <div class="settings-inner">

@@ -36,16 +36,19 @@
   const viewSettings = document.getElementById('view-settings');
   const viewHome = document.getElementById('view-home');
   const viewMood = document.getElementById('view-mood');
+  const viewJournal = document.getElementById('view-journal');
+  const viewInsights = document.getElementById('view-insights');
+  const viewMemory = document.getElementById('view-memory');
   const viewPlaceholder = document.getElementById('view-placeholder');
   const placeholderTitle = document.getElementById('placeholderTitle');
   const placeholderText = document.getElementById('placeholderText');
-  const allViews = [viewChat, viewSettings, viewHome, viewMood, viewPlaceholder];
-  const realViews = { chat: viewChat, settings: viewSettings, home: viewHome, mood: viewMood };
+  const allViews = [viewChat, viewSettings, viewHome, viewMood, viewJournal, viewInsights, viewMemory, viewPlaceholder];
+  const realViews = {
+    chat: viewChat, settings: viewSettings, home: viewHome, mood: viewMood,
+    journal: viewJournal, insights: viewInsights, memory: viewMemory,
+  };
 
   const viewLabels = {
-    journal: ['Journal', 'A private space to write freely — coming soon.'],
-    insights: ['Insights', 'Trends from your mood and chats will be summarized here.'],
-    memory: ['Memory', "What Amrit remembers about you will show up here."],
     contacts: ['Contacts', 'Trusted people you can reach out to, in one place.'],
     safety: ['Safety', 'Emergency contacts and crisis settings will live here.'],
   };
@@ -154,6 +157,21 @@
     const original = moodSaveBtn.innerHTML;
     moodSaveBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Saved!';
     setTimeout(() => { moodSaveBtn.innerHTML = original; }, 1600);
+  });
+
+  // ---- Journal: save button gives feedback ----
+  const journalSaveBtn = document.getElementById('journalSaveBtn');
+  journalSaveBtn?.addEventListener('click', () => {
+    const original = journalSaveBtn.innerHTML;
+    journalSaveBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Saved!';
+    setTimeout(() => { journalSaveBtn.innerHTML = original; }, 1600);
+  });
+
+  // ---- Memory: remove an item (client-side only) ----
+  document.querySelectorAll('.mem-remove').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.closest('.memory-item')?.remove();
+    });
   });
 
   function safeGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
