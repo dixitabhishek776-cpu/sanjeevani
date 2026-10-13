@@ -354,6 +354,21 @@ def render_banner():
         [data-testid="stExpander"] summary {
             font-weight: 600 !important;
         }
+
+        /* --- slider (mood score) --- */
+        [data-testid="stSlider"] [role="slider"] {
+            background-color: #6752D7 !important;
+            border-color: #6752D7 !important;
+        }
+        [data-testid="stSlider"] div[data-baseweb="slider"] > div > div {
+            background: #6752D7 !important;
+        }
+
+        /* --- tag chips (mood tags, multiselect) --- */
+        span[data-baseweb="tag"] {
+            background: linear-gradient(135deg, #8B5CF6, #6752D7) !important;
+            border-radius: 999px !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
