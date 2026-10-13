@@ -326,6 +326,34 @@ def render_banner():
         div[data-testid="stRadio"] label p {
             font-size: 14px !important;
         }
+
+        /* --- chat input bar + mic button --- */
+        [data-testid="stChatInput"] {
+            border-radius: 999px !important;
+            border: 1px solid #ECE8FA !important;
+        }
+        [data-testid="stChatInput"] textarea {
+            font-size: 15px !important;
+        }
+        [data-testid="stChatInputSubmitButton"] {
+            background: linear-gradient(135deg, #8B5CF6, #6752D7) !important;
+            border-radius: 999px !important;
+        }
+        [data-testid="stPopover"] > div > button {
+            border-radius: 999px !important;
+            border: 1px solid #ECE8FA !important;
+        }
+
+        /* --- expander cards (suggested mood / coping exercise) --- */
+        [data-testid="stExpander"] {
+            background: #FFFFFF;
+            border: 1px solid #EAE6F2 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 5px 18px rgba(68,50,110,0.055);
+        }
+        [data-testid="stExpander"] summary {
+            font-weight: 600 !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
