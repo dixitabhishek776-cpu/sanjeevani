@@ -31,16 +31,17 @@
     }
   });
 
-  // ---- View switching: Chat and Settings have real screens, the rest show a placeholder ----
+  // ---- View switching: Chat, Settings and Home have real screens, the rest show a placeholder ----
   const viewChat = document.getElementById('view-chat');
   const viewSettings = document.getElementById('view-settings');
+  const viewHome = document.getElementById('view-home');
   const viewPlaceholder = document.getElementById('view-placeholder');
   const placeholderTitle = document.getElementById('placeholderTitle');
   const placeholderText = document.getElementById('placeholderText');
-  const allViews = [viewChat, viewSettings, viewPlaceholder];
+  const allViews = [viewChat, viewSettings, viewHome, viewPlaceholder];
+  const realViews = { chat: viewChat, settings: viewSettings, home: viewHome };
 
   const viewLabels = {
-    home: ['Home', "Your dashboard is on its way — mood, streak and mindful minutes will live here."],
     mood: ['Mood Tracker', 'Log and review your mood history here once this screen is built.'],
     journal: ['Journal', 'A private space to write freely — coming soon.'],
     insights: ['Insights', 'Trends from your mood and chats will be summarized here.'],
@@ -49,27 +50,33 @@
     safety: ['Safety', 'Emergency contacts and crisis settings will live here.'],
   };
 
+  function showView(view) {
+    document.querySelector('.nav-item.is-active')?.classList.remove('is-active');
+    document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('is-active');
+    sidebar.classList.remove('is-open');
+
+    allViews.forEach((v) => { v.hidden = true; });
+
+    if (realViews[view]) {
+      realViews[view].hidden = false;
+    } else {
+      viewPlaceholder.hidden = false;
+      const [title, text] = viewLabels[view] || ['Coming soon', "This screen hasn't been built yet."];
+      placeholderTitle.textContent = title;
+      placeholderText.textContent = text;
+    }
+  }
+
   document.querySelectorAll('.nav-item').forEach((item) => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      document.querySelector('.nav-item.is-active')?.classList.remove('is-active');
-      item.classList.add('is-active');
-      sidebar.classList.remove('is-open');
-
-      allViews.forEach((v) => { v.hidden = true; });
-
-      const view = item.dataset.view;
-      if (view === 'chat') {
-        viewChat.hidden = false;
-      } else if (view === 'settings') {
-        viewSettings.hidden = false;
-      } else {
-        viewPlaceholder.hidden = false;
-        const [title, text] = viewLabels[view] || ['Coming soon', "This screen hasn't been built yet."];
-        placeholderTitle.textContent = title;
-        placeholderText.textContent = text;
-      }
+      showView(item.dataset.view);
     });
+  });
+
+  // Quick-action cards on Home jump to another nav view
+  document.querySelectorAll('[data-goto]').forEach((btn) => {
+    btn.addEventListener('click', () => showView(btn.dataset.goto));
   });
 
   // ---- Settings: theme choice buttons + toggle switches ----

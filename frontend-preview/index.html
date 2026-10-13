@@ -340,6 +340,74 @@
         </div>
       </section>
 
+      <!-- ===== Home view ===== -->
+      <section class="home-view" id="view-home" hidden>
+        <div class="settings-inner">
+          <div class="home-greeting">
+            <h1>Welcome back, Abhishek 👋</h1>
+            <p>Here's how you've been doing lately.</p>
+          </div>
+
+          <div class="stat-grid">
+            <article class="stat-card">
+              <span class="stat-icon tone-amber">
+                <svg viewBox="0 0 24 24"><path d="M12 2.5c1 3 .5 4.3-.8 5.8-1.6 1.8-2.7 3.4-2.7 5.7a5.5 5.5 0 0 0 11 0c0-2-1-3.6-1.8-4.8.4 2-.3 3-1.2 3.6-.2-2.3-1.4-3.8-2.6-5-1-1-1.8-2.3-1.9-5.3Z"/></svg>
+              </span>
+              <div>
+                <strong>7 days</strong>
+                <span>Current streak</span>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-icon tone-green">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.5V12l3 2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <div>
+                <strong>42 min</strong>
+                <span>Mindful minutes this week</span>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="mini-score" style="background:radial-gradient(circle, var(--surface) 57%, transparent 58%),conic-gradient(var(--purple-500) 0deg, var(--purple-500) 266deg, var(--border) 266deg, var(--border) 360deg)">
+                <strong>7.4</strong>
+              </div>
+              <div>
+                <strong class="no-margin">Avg mood</strong>
+                <span>Last 7 days</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="quick-actions">
+            <button class="quick-action" type="button" data-goto="chat">
+              <span class="chat-item-avatar bot">🤖</span>
+              <div>
+                <strong>Talk to Amrit</strong>
+                <span>Share what's on your mind right now</span>
+              </div>
+              <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="quick-action" type="button" data-goto="mood">
+              <span class="chat-item-avatar" style="background:#fff2d9">😊</span>
+              <div>
+                <strong>Log today's mood</strong>
+                <span>Takes less than a minute</span>
+              </div>
+              <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <div class="journal-prompt-card">
+            <span class="journal-label">YOUR SPACE</span>
+            <h3>Write freely, feel lightly 📖</h3>
+            <p>What's one thing that happened today that you haven't told anyone yet?</p>
+            <button class="edit-btn" type="button" data-goto="journal">Open Journal</button>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== Settings view ===== -->
       <section class="settings-view" id="view-settings" hidden>
         <div class="settings-inner">
