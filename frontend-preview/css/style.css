@@ -672,6 +672,77 @@ svg { width: 20px; height: 20px; fill: currentColor; stroke: none; flex-shrink: 
   .stat-grid { grid-template-columns: 1fr; }
 }
 
+/* ---------- Mood Tracker view ---------- */
+
+.mood-view { overflow-y: auto; height: calc(100vh - 69px); }
+
+.mood-checkin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.mood-checkin-card h3 { margin: 0 0 16px; font-family: var(--font-brand); font-size: 1.02rem; }
+
+.mood-picker { display: flex; gap: 8px; margin-bottom: 14px; }
+.mood-opt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  font-size: 1.5rem;
+}
+.mood-opt span { font-size: .72rem; font-weight: 600; color: var(--text-faint); }
+.mood-opt.is-selected { border-color: var(--purple-500); background: var(--active-bg); }
+.mood-opt.is-selected span { color: var(--active-fg); }
+
+.mood-note {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: .85rem;
+  color: var(--text);
+  font-family: inherit;
+  margin-bottom: 14px;
+}
+.mood-note::placeholder { color: var(--text-faint); }
+
+.section-title { font-family: var(--font-brand); font-size: 1rem; margin: 4px 0 12px; }
+
+.mood-history { display: flex; flex-direction: column; gap: 2px; }
+.mood-entry {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.mood-entry:last-child { border-bottom: none; }
+.mood-entry-emoji { font-size: 1.5rem; flex-shrink: 0; }
+.mood-entry-body { flex: 1; min-width: 0; }
+.mood-entry-body strong { display: flex; align-items: center; gap: 7px; font-size: .86rem; }
+.mood-entry-score {
+  font-style: normal;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--purple-600);
+  background: var(--active-bg);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.mood-entry-body span { display: block; font-size: .79rem; color: var(--text-faint); margin-top: 2px; }
+.mood-entry time { font-size: .74rem; color: var(--text-faint); flex-shrink: 0; }
+
 /* ---------- Settings view ---------- */
 
 .settings-view { overflow-y: auto; height: calc(100vh - 69px); }

@@ -408,6 +408,89 @@
         </div>
       </section>
 
+      <!-- ===== Mood Tracker view ===== -->
+      <section class="mood-view" id="view-mood" hidden>
+        <div class="settings-inner">
+          <div class="home-greeting">
+            <h1>Mood Tracker</h1>
+            <p>Track how you feel, day by day.</p>
+          </div>
+
+          <div class="mood-checkin-card">
+            <h3>How are you feeling today?</h3>
+            <div class="mood-picker" id="moodPicker">
+              <button type="button" class="mood-opt" data-value="2">😢<span>Low</span></button>
+              <button type="button" class="mood-opt" data-value="4">😕<span>Meh</span></button>
+              <button type="button" class="mood-opt" data-value="6">😐<span>Okay</span></button>
+              <button type="button" class="mood-opt is-selected" data-value="8">🙂<span>Good</span></button>
+              <button type="button" class="mood-opt" data-value="10">😄<span>Great</span></button>
+            </div>
+            <textarea class="mood-note" placeholder="Add a note about why you feel this way (optional)…"></textarea>
+            <button class="save-btn" type="button" id="moodSaveBtn">
+              <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Save Today's Mood
+            </button>
+          </div>
+
+          <div class="stat-grid">
+            <article class="stat-card">
+              <span class="stat-icon tone-amber">
+                <svg viewBox="0 0 24 24"><path d="M12 2.5c1 3 .5 4.3-.8 5.8-1.6 1.8-2.7 3.4-2.7 5.7a5.5 5.5 0 0 0 11 0c0-2-1-3.6-1.8-4.8.4 2-.3 3-1.2 3.6-.2-2.3-1.4-3.8-2.6-5-1-1-1.8-2.3-1.9-5.3Z"/></svg>
+              </span>
+              <div><strong>7 days</strong><span>Current streak</span></div>
+            </article>
+            <article class="stat-card">
+              <div class="mini-score" style="background:radial-gradient(circle, var(--surface) 57%, transparent 58%),conic-gradient(var(--purple-500) 0deg, var(--purple-500) 266deg, var(--border) 266deg, var(--border) 360deg)">
+                <strong>7.4</strong>
+              </div>
+              <div><strong class="no-margin">Avg mood</strong><span>Last 7 days</span></div>
+            </article>
+            <article class="stat-card">
+              <span class="stat-icon tone-green">
+                <svg viewBox="0 0 24 24"><path d="M6 3.5h9A2.5 2.5 0 0 1 17.5 6v14.5H8A2.5 2.5 0 0 1 5.5 18V6A2.5 2.5 0 0 1 6 3.5Z"/></svg>
+              </span>
+              <div><strong>34</strong><span>Total check-ins</span></div>
+            </article>
+          </div>
+
+          <h3 class="section-title">Recent entries</h3>
+          <div class="mood-history">
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">🙂</span>
+              <div class="mood-entry-body">
+                <strong>Good <em class="mood-entry-score">8/10</em></strong>
+                <span>Felt productive after finishing a big assignment.</span>
+              </div>
+              <time>Today</time>
+            </div>
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">😐</span>
+              <div class="mood-entry-body">
+                <strong>Okay <em class="mood-entry-score">6/10</em></strong>
+                <span>Stressed about exams but managed to study a bit.</span>
+              </div>
+              <time>Yesterday</time>
+            </div>
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">😄</span>
+              <div class="mood-entry-body">
+                <strong>Great <em class="mood-entry-score">9/10</em></strong>
+                <span>Talked to family, felt really supported.</span>
+              </div>
+              <time>2 days ago</time>
+            </div>
+            <div class="mood-entry">
+              <span class="mood-entry-emoji">😕</span>
+              <div class="mood-entry-body">
+                <strong>Meh <em class="mood-entry-score">4/10</em></strong>
+                <span>Overthinking again, hard to focus.</span>
+              </div>
+              <time>3 days ago</time>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== Settings view ===== -->
       <section class="settings-view" id="view-settings" hidden>
         <div class="settings-inner">

@@ -35,14 +35,14 @@
   const viewChat = document.getElementById('view-chat');
   const viewSettings = document.getElementById('view-settings');
   const viewHome = document.getElementById('view-home');
+  const viewMood = document.getElementById('view-mood');
   const viewPlaceholder = document.getElementById('view-placeholder');
   const placeholderTitle = document.getElementById('placeholderTitle');
   const placeholderText = document.getElementById('placeholderText');
-  const allViews = [viewChat, viewSettings, viewHome, viewPlaceholder];
-  const realViews = { chat: viewChat, settings: viewSettings, home: viewHome };
+  const allViews = [viewChat, viewSettings, viewHome, viewMood, viewPlaceholder];
+  const realViews = { chat: viewChat, settings: viewSettings, home: viewHome, mood: viewMood };
 
   const viewLabels = {
-    mood: ['Mood Tracker', 'Log and review your mood history here once this screen is built.'],
     journal: ['Journal', 'A private space to write freely — coming soon.'],
     insights: ['Insights', 'Trends from your mood and chats will be summarized here.'],
     memory: ['Memory', "What Amrit remembers about you will show up here."],
@@ -139,6 +139,21 @@
 
     composerInput.value = '';
     threadBody.scrollTop = threadBody.scrollHeight;
+  });
+
+  // ---- Mood Tracker: pick an emoji, save button gives feedback ----
+  document.querySelectorAll('.mood-opt').forEach((opt) => {
+    opt.addEventListener('click', () => {
+      document.querySelector('.mood-opt.is-selected')?.classList.remove('is-selected');
+      opt.classList.add('is-selected');
+    });
+  });
+
+  const moodSaveBtn = document.getElementById('moodSaveBtn');
+  moodSaveBtn?.addEventListener('click', () => {
+    const original = moodSaveBtn.innerHTML;
+    moodSaveBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Saved!';
+    setTimeout(() => { moodSaveBtn.innerHTML = original; }, 1600);
   });
 
   function safeGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
