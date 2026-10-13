@@ -39,19 +39,19 @@
   const viewJournal = document.getElementById('view-journal');
   const viewInsights = document.getElementById('view-insights');
   const viewMemory = document.getElementById('view-memory');
+  const viewContacts = document.getElementById('view-contacts');
+  const viewSafety = document.getElementById('view-safety');
   const viewPlaceholder = document.getElementById('view-placeholder');
   const placeholderTitle = document.getElementById('placeholderTitle');
   const placeholderText = document.getElementById('placeholderText');
-  const allViews = [viewChat, viewSettings, viewHome, viewMood, viewJournal, viewInsights, viewMemory, viewPlaceholder];
+  const allViews = [viewChat, viewSettings, viewHome, viewMood, viewJournal, viewInsights, viewMemory, viewContacts, viewSafety, viewPlaceholder];
   const realViews = {
     chat: viewChat, settings: viewSettings, home: viewHome, mood: viewMood,
     journal: viewJournal, insights: viewInsights, memory: viewMemory,
+    contacts: viewContacts, safety: viewSafety,
   };
 
-  const viewLabels = {
-    contacts: ['Contacts', 'Trusted people you can reach out to, in one place.'],
-    safety: ['Safety', 'Emergency contacts and crisis settings will live here.'],
-  };
+  const viewLabels = {};
 
   function showView(view) {
     document.querySelector('.nav-item.is-active')?.classList.remove('is-active');
