@@ -114,14 +114,422 @@
       </div>
     </header>
 
-    <main class="content" id="content">
-      <div class="placeholder-view">
-        <div class="placeholder-icon">
+    <main class="content content--full" id="content">
+
+      <!-- ===== Chat view ===== -->
+      <section class="chat-view" id="view-chat">
+
+        <!-- Chats list panel -->
+        <div class="chat-list-panel" id="chatListPanel">
+          <div class="chat-list-head">
+            <h2>Chats</h2>
+            <button class="round-btn" aria-label="New chat">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
+          <label class="search chat-search">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+            <input type="search" placeholder="Search chats…" />
+          </label>
+
+          <div class="chat-tabs">
+            <button class="chat-tab is-active">All</button>
+            <button class="chat-tab">Amrit</button>
+            <button class="chat-tab">Support</button>
+            <button class="chat-tab">Archived</button>
+          </div>
+
+          <div class="chat-items">
+            <button class="chat-item is-active" data-thread="amrit">
+              <span class="chat-item-avatar bot">🤖</span>
+              <span class="chat-item-body">
+                <strong>Amrit <em class="pill">AI Companion</em></strong>
+                <span>I'm here for you, Abhishek…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>9:42 PM</time>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="mood">
+              <span class="chat-item-avatar" style="background:#fff2d9">😊</span>
+              <span class="chat-item-body">
+                <strong>Mood Check-in</strong>
+                <span>How are you feeling today?</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>8:15 PM</time>
+                <em class="badge">2</em>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="study">
+              <span class="chat-item-avatar" style="background:#e3f7e9">🎓</span>
+              <span class="chat-item-body">
+                <strong>Study Stress</strong>
+                <span>It's okay to feel overwhelmed…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>7:20 PM</time>
+                <i class="status-dot"></i>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="deep">
+              <span class="chat-item-avatar" style="background:#ffe6ef">💗</span>
+              <span class="chat-item-body">
+                <strong>Deep Conversations</strong>
+                <span>Thank you for sharing that…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>Yesterday</time>
+                <svg class="pin" viewBox="0 0 24 24"><path d="M14 2 9 7 5 8l6 6-4 6 6-4 6 6 1-4-5-5 5-5-6-5Z"/></svg>
+              </span>
+            </button>
+
+            <button class="chat-item is-urgent" data-thread="crisis">
+              <span class="chat-item-avatar" style="background:#ffe3e3">⚠️</span>
+              <span class="chat-item-body">
+                <strong>Crisis Support</strong>
+                <span>Stay strong, you matter…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>2 Oct</time>
+                <em class="badge is-danger">2</em>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="journal">
+              <span class="chat-item-avatar" style="background:#e4eefc">📘</span>
+              <span class="chat-item-body">
+                <strong>Journal Reflections</strong>
+                <span>Your journal has been updated.</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>1 Oct</time>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="fitness">
+              <span class="chat-item-avatar" style="background:#e6f5e9">🌱</span>
+              <span class="chat-item-body">
+                <strong>Fitness &amp; Mindset</strong>
+                <span>Small changes make a big diff…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>30 Sep</time>
+              </span>
+            </button>
+
+            <button class="chat-item" data-thread="family">
+              <span class="chat-item-avatar" style="background:#ffeedc">👪</span>
+              <span class="chat-item-body">
+                <strong>Family &amp; Friends</strong>
+                <span>You can also talk to them…</span>
+              </span>
+              <span class="chat-item-meta">
+                <time>28 Sep</time>
+              </span>
+            </button>
+          </div>
+
+          <a href="#" class="view-all">
+            View All Chats
+            <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+
+          <div class="sidebar-quote chat-list-quote">
+            <p>“You matter.<br>Your mental health matters.”</p>
+            <span>— Sanjeevani</span>
+          </div>
+        </div>
+
+        <!-- Active conversation panel -->
+        <div class="chat-thread-panel" id="chatThreadPanel">
+          <header class="thread-head">
+            <button class="round-btn thread-back" id="threadBack" aria-label="Back to chats">
+              <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="chat-item-avatar bot">🤖</span>
+            <span class="thread-who">
+              <strong>Amrit</strong>
+              <em><i class="status-dot"></i>Online &nbsp;·&nbsp; AI Companion — Always here for you</em>
+            </span>
+            <span class="thread-actions">
+              <button class="round-btn" aria-label="Call">
+                <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8Z"/></svg>
+              </button>
+              <button class="round-btn" aria-label="Video call">
+                <svg viewBox="0 0 24 24"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h8a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 13 18H5a1.5 1.5 0 0 1-1.5-1.5v-9Z"/><path d="m16 10.4 4-2.4v8l-4-2.4" stroke="currentColor" stroke-width="0"/><path d="m16 10.4 4-2.4v8l-4-2.4Z"/></svg>
+              </button>
+              <button class="round-btn" aria-label="More options">
+                <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+              </button>
+            </span>
+          </header>
+
+          <div class="thread-body" id="threadBody">
+            <div class="msg msg--bot">
+              <span class="chat-item-avatar bot msg-avatar">🤖</span>
+              <div class="msg-stack">
+                <div class="bubble">
+                  Hey Abhishek! 💙<br><br>
+                  I'm really glad you're here. How are you feeling today? Remember, it's completely okay to talk about anything — even the small things.<br><br>
+                  I'm here to listen, support, and help you through whatever you're going through.
+                </div>
+                <time>9:41 PM</time>
+              </div>
+            </div>
+
+            <div class="msg msg--user">
+              <div class="msg-stack">
+                <div class="bubble">I'm feeling a bit stressed about my exams and also overthinking a lot lately.</div>
+                <time>9:42 PM <svg class="read" viewBox="0 0 24 24"><path d="m2 12 4 4L16 6M9 16l1 1L20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></time>
+              </div>
+            </div>
+
+            <div class="msg msg--bot">
+              <span class="chat-item-avatar bot msg-avatar">🤖</span>
+              <div class="msg-stack">
+                <div class="bubble">
+                  I understand, Abhishek. Exams and overthinking can be really tough. 🙂<br><br>
+                  Let's take this step by step:<br>
+                  1. Take short breaks (Pomodoro works great!)<br>
+                  2. Try deep breathing for 2 minutes<br>
+                  3. Focus on what you can control!<br><br>
+                  You're doing better than you think, and I'm here with you. Would you like me to help you make a study plan or just talk more about what's bothering you?
+                </div>
+                <time>9:42 PM</time>
+              </div>
+            </div>
+
+            <div class="msg msg--user">
+              <div class="msg-stack">
+                <div class="bubble">Yes, please help me with a study plan.</div>
+                <time>9:43 PM <svg class="read" viewBox="0 0 24 24"><path d="m2 12 4 4L16 6M9 16l1 1L20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></time>
+              </div>
+            </div>
+
+            <div class="msg msg--bot">
+              <span class="chat-item-avatar bot msg-avatar">🤖</span>
+              <div class="msg-stack">
+                <div class="typing">
+                  <span>Amrit is typing</span>
+                  <i></i><i></i><i></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form class="composer" id="composer">
+            <button type="button" class="round-btn" aria-label="Add attachment">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </button>
+            <input type="text" placeholder="Type your message here…" aria-label="Message" />
+            <button type="button" class="round-btn" aria-label="Attach file">
+              <svg viewBox="0 0 24 24"><path d="M16.5 6.5 8.8 14.2a2.5 2.5 0 0 0 3.5 3.5l8-8a4 4 0 1 0-5.6-5.6l-8 8a5.5 5.5 0 1 0 7.8 7.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button type="button" class="round-btn" aria-label="Voice message">
+              <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <button type="submit" class="send-btn" aria-label="Send message">
+              <svg viewBox="0 0 24 24"><path d="M3 11.5 20.5 3 14 20.5l-3-7-8-2Z" fill="#fff"/></svg>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===== Settings view ===== -->
+      <section class="settings-view" id="view-settings" hidden>
+        <div class="settings-inner">
+          <div class="settings-head">
+            <div>
+              <h1>Settings</h1>
+              <p>Manage your account, privacy, AI companion and more.</p>
+            </div>
+            <button class="save-btn" type="button">
+              <svg viewBox="0 0 24 24"><path d="M5 5h11l3 3v11H5V5Z" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M8 5v5h8V5M8 14h8v5" stroke="#fff" stroke-width="1.6" fill="none"/></svg>
+              Save Changes
+            </button>
+          </div>
+
+          <div class="settings-grid">
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-purple">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.9-4 3.8-6.2 7.5-6.2S18.6 16 19.5 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                  <h3>Account Settings</h3>
+                  <p>Update your profile, email and basic information.</p>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-kv">
+                  <span>Name</span><strong>Abhishek Dixit</strong>
+                </div>
+                <div class="settings-kv">
+                  <span>Email</span><strong>abhishek@example.com</strong>
+                </div>
+              </div>
+              <button class="edit-btn" type="button">
+                <svg viewBox="0 0 24 24"><path d="m15.5 4.5 4 4L8 20H4v-4L15.5 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                Edit
+              </button>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-green">
+                  <svg viewBox="0 0 24 24"><path d="M12 3.3 19 6v5.4c0 4.6-3 7.9-7 9.3-4-1.4-7-4.7-7-9.3V6l7-2.7Z"/></svg>
+                </span>
+                <div>
+                  <h3>Privacy &amp; Security</h3>
+                  <p>Manage data encryption, sessions and access control.</p>
+                </div>
+              </div>
+              <div class="status-strip tone-green">
+                <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div>
+                  <strong>Your data is secure</strong>
+                  <span>End-to-end encryption enabled</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-purple">
+                  <svg viewBox="0 0 24 24"><path d="M12 3.5a5.6 5.6 0 0 1 5.5 5.6c0 2.1-1.1 3.3-2 4.3-.7.8-1.1 1.3-1.1 2.3v.8h-4.8v-.8c0-1-.4-1.5-1.1-2.3-.9-1-2-2.2-2-4.3A5.6 5.6 0 0 1 12 3.5Z"/><path d="M9.6 19h4.8M10.2 21h3.6" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                  <h3>AI Companion (Amrit)</h3>
+                  <p>Customize Amrit's personality, response style and memory.</p>
+                </div>
+              </div>
+              <div class="settings-kv block">
+                <span>Personality</span><strong>Kind, supportive, empathetic</strong>
+              </div>
+              <button class="edit-btn" type="button">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.6-1.3-1.5-2.6-1.9.6a7 7 0 0 0-1.3-.8L16 5.7h-3l-.3 2.2a7 7 0 0 0-1.3.8l-1.9-.6-1.5 2.6L9.6 12c-.1.5-.1 1 0 1.5L8 14.8l1.5 2.6 1.9-.6c.4.3.9.6 1.3.8l.3 2.2h3l.3-2.2c.4-.2.9-.5 1.3-.8l1.9.6 1.5-2.6-1.6-1.3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                Customize
+              </button>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-amber">
+                  <svg viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 3.2.8 4.9 1.6 5.8.3.4 0 1-.5 1H4.9c-.5 0-.8-.6-.5-1C5.2 14.9 6 13.2 6 10Z"/></svg>
+                </span>
+                <div>
+                  <h3>Notifications</h3>
+                  <p>Manage alerts, reminders and mood/journal notifications.</p>
+                </div>
+              </div>
+              <div class="toggle-row">
+                <span>Mood Reminders</span>
+                <button class="switch is-on" type="button" role="switch" aria-checked="true"><i></i></button>
+              </div>
+              <div class="toggle-row">
+                <span>Journal Prompts</span>
+                <button class="switch is-on" type="button" role="switch" aria-checked="true"><i></i></button>
+              </div>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-red">
+                  <svg viewBox="0 0 24 24"><path d="M12 3.3 19 6v5.4c0 4.6-3 7.9-7 9.3-4-1.4-7-4.7-7-9.3V6l7-2.7Z"/><path d="m9.3 12 1.9 1.9 3.6-3.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <div>
+                  <h3>Safety &amp; Crisis Support</h3>
+                  <p>Emergency contacts and crisis detection settings.</p>
+                </div>
+              </div>
+              <div class="status-strip tone-red">
+                <svg viewBox="0 0 24 24"><path d="M12 3.3 19 6v5.4c0 4.6-3 7.9-7 9.3-4-1.4-7-4.7-7-9.3V6l7-2.7Z"/></svg>
+                <div>
+                  <strong>Crisis Detection <em class="chip tone-red">Active</em></strong>
+                  <span>Emergency contacts configured</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-purple">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                  <h3>Appearance</h3>
+                  <p>Choose your theme and visual preferences.</p>
+                </div>
+              </div>
+              <div class="theme-row">
+                <button class="theme-choice" id="settingsLight" type="button">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                  Light
+                </button>
+                <button class="theme-choice" id="settingsDark" type="button">
+                  <svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.8 6.8 0 0 0 20 14.5Z"/></svg>
+                  Dark
+                </button>
+              </div>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-purple">
+                  <svg viewBox="0 0 24 24"><path d="M4 7a8 3 0 0 0 16 0 8 3 0 0 0-16 0Z"/><path d="M4 7v10a8 3 0 0 0 16 0V7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                </span>
+                <div>
+                  <h3>Data &amp; Privacy</h3>
+                  <p>Export or delete your data and manage account storage.</p>
+                </div>
+              </div>
+              <a class="text-link" href="#">
+                <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Export Data
+              </a>
+              <a class="text-link tone-red" href="#">
+                <svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Delete Account
+              </a>
+            </article>
+
+            <article class="settings-card">
+              <div class="settings-card-head">
+                <span class="settings-icon tone-purple">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><path d="M12 11v5.5M12 7.8v.1" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                  <h3>About Sanjeevani</h3>
+                  <p>App version, terms and support information.</p>
+                </div>
+              </div>
+              <div class="settings-kv block">
+                <span>Version</span><strong>v1.7.3 <em class="chip tone-green">Stable</em></strong>
+              </div>
+              <div class="link-row">
+                <a href="#">Terms</a><span>|</span><a href="#">Privacy</a><span>|</span><a href="#">Support</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Generic placeholder view (other nav items) ===== -->
+      <section class="placeholder-view" id="view-placeholder" hidden>
+        <div class="placeholder-icon" id="placeholderIcon">
           <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4.3 3.3a.6.6 0 0 1-1-.47V5.5Z"/></svg>
         </div>
-        <h1>This is the shell</h1>
-        <p>Sidebar navigation, top bar, theme toggle and layout grid are wired up. The Chat, Mood Tracker, Journal and other screens drop into this content area next.</p>
-      </div>
+        <h1 id="placeholderTitle">Coming soon</h1>
+        <p id="placeholderText">This screen hasn't been built yet.</p>
+      </section>
+
     </main>
   </div>
 </div>
