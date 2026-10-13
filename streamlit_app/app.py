@@ -299,6 +299,33 @@ def render_banner():
             background: linear-gradient(135deg, #7656E8, #6548D2) !important;
             color: white !important;
         }
+
+        /* --- sidebar nav: icon + pill style, matching the design preview --- */
+        div[data-testid="stRadio"] > div[role="radiogroup"] {
+            gap: 3px;
+        }
+        div[data-testid="stRadio"] label {
+            padding: 10px 14px !important;
+            border-radius: 12px !important;
+            width: 100%;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        div[data-testid="stRadio"] label:hover {
+            background: #FCFBFF;
+        }
+        div[data-testid="stRadio"] label:has(input:checked) {
+            background: #F1EDFF !important;
+        }
+        div[data-testid="stRadio"] label:has(input:checked) p {
+            color: #6752D7 !important;
+            font-weight: 700 !important;
+        }
+        div[data-testid="stRadio"] label > div:first-child {
+            display: none;
+        }
+        div[data-testid="stRadio"] label p {
+            font-size: 14px !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1835,9 +1862,9 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["Chat", "Mood", "Journal", "Weekly summary", "Settings"]
+            pages = ["💬 Chat", "😊 Mood", "📔 Journal", "📊 Insights", "💜 Contacts", "⚙️ Settings"]
             if user.role in ("reviewer", "super_admin"):
-                pages.append("Reviewer dashboard")
+                pages.append("🛡️ Reviewer dashboard")
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
             st.divider()
             if st.button("Sign out"):
@@ -1845,17 +1872,19 @@ def main():
                 st.session_state.clear()
                 st.rerun()
 
-        if choice == "Chat":
+        if choice == "💬 Chat":
             run_page_safely(page_chat, db, user)
-        elif choice == "Settings":
+        elif choice == "⚙️ Settings":
             run_page_safely(page_settings, db, user)
-        elif choice == "Mood":
+        elif choice == "😊 Mood":
             run_page_safely(page_mood, db, user)
-        elif choice == "Journal":
+        elif choice == "📔 Journal":
             run_page_safely(page_journal, db, user)
-        elif choice == "Weekly summary":
+        elif choice == "📊 Insights":
             run_page_safely(page_summary, db, user)
-        elif choice == "Reviewer dashboard":
+        elif choice == "💜 Contacts":
+            run_page_safely(page_contacts, db, user)
+        elif choice == "🛡️ Reviewer dashboard":
             run_page_safely(page_reviewer, db, user)
     finally:
         db.close()
