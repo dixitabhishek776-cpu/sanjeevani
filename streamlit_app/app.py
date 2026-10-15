@@ -1794,6 +1794,27 @@ def page_reviewer(db, user):
 # ---------------------------------------------------------------------------
 
 def page_system_status(db):
+    st.markdown(
+        """
+        <style>
+        /* --- System status tab (purple theme) --- */
+        div[data-testid="stMetric"] {
+            background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 16px;
+            padding: 14px 16px;
+        }
+        div[data-testid="stMetricValue"] {
+            color: #41336E;
+            font-weight: 800;
+        }
+        div[data-testid="stMetricLabel"] {
+            color: #805DE0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.subheader("System status")
     st.caption("Live self-diagnostics: what's working, what recovered automatically, and what needs attention.")
 
