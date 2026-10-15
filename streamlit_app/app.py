@@ -1180,6 +1180,41 @@ def page_mood(db, user):
 # ---------------------------------------------------------------------------
 
 def page_journal(db, user):
+    st.markdown(
+        """
+        <style>
+        /* --- Journal page (purple theme) --- */
+        div[data-testid="stForm"] {
+            background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 18px;
+            padding: 20px;
+        }
+        div[data-testid="stForm"] textarea {
+            border-radius: 12px;
+            border-color: rgba(124, 58, 237, 0.25);
+        }
+        div[data-testid="stForm"] textarea:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 1px #7c3aed !important;
+        }
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #6d28d9;
+        }
+        [data-testid="stExpander"] {
+            border-left: 3px solid #7c3aed;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown('<style>.journal-prompt{padding:22px;border-radius:22px;margin-bottom:14px;background:linear-gradient(135deg, #F0EBFF, #FFF2FA);}.journal-prompt-label{color:#805DE0;font-size:9px;font-weight:800;letter-spacing:0.14em;}.journal-prompt-title{margin-top:8px;color:#41336E;font-size:19px;font-weight:750;}</style><div class="journal-prompt"><div class="journal-prompt-label">YOUR SPACE</div><div class="journal-prompt-title">Write freely, feel lightly 📖</div></div>', unsafe_allow_html=True)
     st.subheader("Journal")
     cipher = get_cipher(db, user)
