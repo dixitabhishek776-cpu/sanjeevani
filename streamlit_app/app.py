@@ -1248,6 +1248,43 @@ def page_journal(db, user):
 # ---------------------------------------------------------------------------
 
 def page_summary(db, user):
+    st.markdown(
+        """
+        <style>
+        /* --- Weekly summary / Insights page (purple theme) --- */
+        div[data-testid="stMetric"] {
+            background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 16px;
+            padding: 14px 16px;
+        }
+        div[data-testid="stMetricValue"] {
+            color: #41336E;
+            font-weight: 800;
+        }
+        div[data-testid="stMetricLabel"] {
+            color: #805DE0;
+        }
+        div[data-testid="stButton"] button {
+            background-color: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stButton"] button:hover {
+            background-color: #6d28d9;
+            color: white;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            border-radius: 16px;
+            border-color: rgba(124, 58, 237, 0.2);
+            background: linear-gradient(135deg, #F7F4FF, #FFF2FA);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.subheader("Weekly summary")
     end = dt.datetime.now(dt.timezone.utc)
     start = end - dt.timedelta(days=7)
