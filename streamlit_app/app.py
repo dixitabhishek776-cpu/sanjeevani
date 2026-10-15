@@ -500,6 +500,73 @@ def page_terms_of_service():
 
 
 def page_login_register():
+    st.markdown(
+        """
+        <style>
+        /* --- Login / Register page (purple theme) --- */
+        h1 {
+            color: #41336E;
+            font-weight: 800;
+        }
+        div[data-testid="stForm"] {
+            background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 18px;
+            padding: 20px;
+        }
+        div[data-testid="stTextInput"] input {
+            border-radius: 10px;
+        }
+        div[data-testid="stTextInput"] input:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 1px #7c3aed !important;
+        }
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #6d28d9;
+        }
+        div[data-testid="stButton"] button {
+            background-color: transparent;
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stButton"] button:hover {
+            background-color: rgba(124, 58, 237, 0.08);
+            border-color: #7c3aed;
+            color: #6d28d9;
+        }
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            gap: 4px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+        }
+        [data-testid="stTabs"] [data-baseweb="tab"] {
+            height: 42px;
+            border-radius: 10px 10px 0 0;
+            padding: 0 16px;
+            color: #6b5b8a;
+            font-weight: 500;
+        }
+        [data-testid="stTabs"] [aria-selected="true"] {
+            color: #7c3aed !important;
+            background-color: rgba(124, 58, 237, 0.10);
+        }
+        [data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+            background-color: #7c3aed;
+            height: 3px;
+            border-radius: 3px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.title("🌱 Sanjeevani")
     st.write("A space to reflect. Not a substitute for therapy or medical care.")
 
