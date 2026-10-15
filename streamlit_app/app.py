@@ -797,8 +797,51 @@ def _render_preferences_tab(db, user):
 def page_settings(db, user):
     st.subheader("Settings")
     st.caption("Personalize how Sanjeevani looks and talks to you, and manage your account.")
-    tab_prefs, tab_screening, tab_privacy, tab_contacts, tab_status = st.tabs(
-        ["Preferences", "Screening", "Privacy & data", "Emergency contacts", "System status"]
+    st.markdown(
+        """
+        <style>
+        /* --- Settings page: tabs + toggles (purple theme) --- */
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            gap: 4px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+        }
+        [data-testid="stTabs"] [data-baseweb="tab"] {
+            height: 42px;
+            border-radius: 10px 10px 0 0;
+            padding: 0 16px;
+            color: #6b5b8a;
+            font-weight: 500;
+        }
+        [data-testid="stTabs"] [data-baseweb="tab"]:hover {
+            background-color: rgba(124, 58, 237, 0.08);
+        }
+        [data-testid="stTabs"] [aria-selected="true"] {
+            color: #7c3aed !important;
+            background-color: rgba(124, 58, 237, 0.10);
+        }
+        [data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+            background-color: #7c3aed;
+            height: 3px;
+            border-radius: 3px;
+        }
+        div[data-testid="stCheckbox"] label span[aria-checked="true"] {
+            background-color: #7c3aed !important;
+            border-color: #7c3aed !important;
+        }
+        div[data-testid="stCheckbox"] label span {
+            border-color: rgba(124, 58, 237, 0.4);
+        }
+        div[data-testid="stTextInput"] input:focus,
+        div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 1px #7c3aed !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    tab_prefs, tab_screening, tab_privacy, tab_status = st.tabs(
+        ["Preferences", "Screening", "Privacy & data", "System status"]
     )
     with tab_prefs:
         _render_preferences_tab(db, user)
@@ -806,8 +849,6 @@ def page_settings(db, user):
         page_screening(db, user)
     with tab_privacy:
         page_privacy(db, user)
-    with tab_contacts:
-        page_contacts(db, user)
     with tab_status:
         page_system_status(db)
 
