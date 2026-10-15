@@ -1538,6 +1538,56 @@ def _mask(v):
 
 
 def page_contacts(db, user):
+    st.markdown(
+        """
+        <style>
+        /* --- Contacts page (purple theme) --- */
+        div[data-testid="stForm"] {
+            background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 18px;
+            padding: 20px;
+        }
+        div[data-testid="stForm"] input {
+            border-radius: 10px;
+        }
+        div[data-testid="stTextInput"] input:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 1px #7c3aed !important;
+        }
+        div[data-testid="stCheckbox"] label span[aria-checked="true"] {
+            background-color: #7c3aed !important;
+            border-color: #7c3aed !important;
+        }
+        div[data-testid="stCheckbox"] label span {
+            border-color: rgba(124, 58, 237, 0.4);
+        }
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #6d28d9;
+        }
+        div[data-testid="stButton"] button {
+            background-color: transparent;
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stButton"] button:hover {
+            background-color: rgba(124, 58, 237, 0.08);
+            border-color: #7c3aed;
+            color: #6d28d9;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="privacy-card"><div class="privacy-icon">💜</div><div><strong>Trusted people, on standby</strong><br/><span style="font-size:11px;color:#5c6b60;">Add people you trust — they’re only contacted with your explicit consent.</span></div></div>', unsafe_allow_html=True)
     st.subheader("Emergency contacts")
     cipher = get_cipher(db, user)
