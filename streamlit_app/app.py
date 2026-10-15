@@ -1703,6 +1703,37 @@ def page_contacts(db, user):
 # ---------------------------------------------------------------------------
 
 def page_reviewer(db, user):
+    st.markdown(
+        """
+        <style>
+        /* --- Reviewer dashboard (purple theme) --- */
+        [data-testid="stExpander"] {
+            border-left: 3px solid #7c3aed;
+            border-radius: 12px;
+        }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within,
+        div[data-testid="stTextArea"] textarea:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 1px #7c3aed !important;
+        }
+        div[data-testid="stTextArea"] textarea {
+            border-radius: 12px;
+        }
+        div[data-testid="stButton"] button {
+            background-color: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        div[data-testid="stButton"] button:hover {
+            background-color: #6d28d9;
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.subheader("Reviewer dashboard")
     st.caption("Visible only to accounts with reviewer / super_admin role.")
 
