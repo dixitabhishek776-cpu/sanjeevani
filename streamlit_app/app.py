@@ -1848,7 +1848,7 @@ def page_intro():
     st.markdown(
         "<style>"
         ".welcome-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; "
-        "background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F3FBFC 45%, #DFF5FA 100%); "
+        "background: radial-gradient(circle at 50% 20%, #FFFFFF 0%, #F5F0FF 45%, #E6DCFF 100%); "
         "border-radius: 24px; padding: 40px 20px; }"
         ".welcome-content { width: 100%; max-width: 430px; margin: 0 auto; text-align: center; }"
         ".welcome-logo-circle { width: 130px; height: 130px; margin: 0 auto 14px; border-radius: 50%; "
@@ -1873,6 +1873,35 @@ def page_intro():
     )
 
     st.write("")
+    st.markdown(
+        """
+        <style>
+        /* --- Intro screen buttons (purple theme) --- */
+        button[data-testid="stBaseButton-primary"] {
+            background-color: #7c3aed;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        button[data-testid="stBaseButton-primary"]:hover {
+            background-color: #6d28d9;
+        }
+        button[data-testid="stBaseButton-secondary"] {
+            background-color: transparent;
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        button[data-testid="stBaseButton-secondary"]:hover {
+            background-color: rgba(124, 58, 237, 0.08);
+            border-color: #7c3aed;
+            color: #6d28d9;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("Get Started", use_container_width=True, type="primary"):
