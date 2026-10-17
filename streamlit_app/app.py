@@ -924,7 +924,20 @@ def page_chat(db, user):
     _prefs_for_chat = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
     _settings_for_chat = (_prefs_for_chat.notification_settings or {}) if _prefs_for_chat else {}
     companion_name = _settings_for_chat.get("companion_name") or COMPANION_NAME
-    st.caption(f"Start whenever you're ready — you're chatting with {companion_name}. There's no wrong way to begin.")
+    st.markdown(
+        """
+        <style>
+        .talk-pill { display: inline-block; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(124,58,237,0.4); color: #6D3AE0; font-size: 12px; font-weight: 600; background: #FFFFFF; margin-bottom: 10px; }
+        .intro-bubble { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(124,58,237,0.12); color: #2B2250; font-size: 14px; line-height: 1.4; margin-bottom: 12px; }
+        .intro-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #8B5CF6, #6752D7); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+        button[data-testid="stBaseButton-pills"] { border-radius: 999px; border: 1px solid rgba(124,58,237,0.35); background: #FFFFFF; color: #6D3AE0; font-weight: 500; }
+        button[data-testid="stBaseButton-pillsActive"] { border-radius: 999px; background: #6D3AE0; color: #FFFFFF; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'<span class="talk-pill">Talking with {__import__("html").escape(companion_name)}</span>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-bubble"><span class="intro-avatar">🪷</span><span>Start whenever you&#39;re ready. There&#39;s no wrong way to begin.</span></div>', unsafe_allow_html=True)
     st.caption("🎛️ You can change language, voice, and automatic assist anytime in **Settings**.")
 
     st.session_state.setdefault("chat_language", _settings_for_chat.get("chat_language", "English"))
@@ -981,12 +994,27 @@ def page_chat(db, user):
                 height=0,
             )
 
+    if not st.session_state["chat_history"]:
+        def _pick_starter():
+            st.session_state["_starter_prompt"] = st.session_state.get("starter_pill")
+            st.session_state["starter_pill"] = None
+        st.caption("Not sure where to start?")
+        st.pills(
+            "Quick starts",
+            ["I'm feeling tired", "Help me unwind", "I need to vent", "Check in on my mood"],
+            key="starter_pill",
+            on_change=_pick_starter,
+            label_visibility="collapsed",
+        )
+
     _mic_col1, _mic_col2 = st.columns([6, 1])
     with _mic_col2:
         with st.popover("🎤"):
             st.caption("Record a voice message")
             audio_value = st.audio_input("Record your message", label_visibility="collapsed")
     prompt = st.chat_input("Type how you're feeling...")
+    if not prompt and st.session_state.get("_starter_prompt"):
+        prompt = st.session_state.pop("_starter_prompt")
 
     if audio_value is not None:
         audio_bytes = audio_value.getvalue()
