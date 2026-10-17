@@ -1146,7 +1146,7 @@ def page_chat(db, user):
 # ---------------------------------------------------------------------------
 
 def page_mood(db, user):
-    st.markdown('<style>.mood-emoji-display{text-align:center;font-size:55px;margin:6px 0;}.mood-number-display{text-align:center;font-size:44px;font-weight:800;color:#5F49B8;}</style>', unsafe_allow_html=True)
+    st.markdown('<style>.mood-emoji-display{text-align:center;font-size:55px;margin:6px 0;}.mood-number-display{text-align:center;font-size:44px;font-weight:800;color:#5F49B8;}.mood-emoji-display{width:90px;height:90px;line-height:90px;margin:6px auto;border-radius:50%;background:#fff;box-shadow:0 8px 24px rgba(105,61,230,0.15);font-size:44px;}button[data-testid="stBaseButton-pills"]{border-radius:999px;border:1px solid rgba(124,58,237,0.35);background:#fff;color:#6D3AE0;}button[data-testid="stBaseButton-pillsActive"]{border-radius:999px;background:#6D3AE0;color:#fff;}div[data-testid="stHorizontalBlock"]{flex-wrap:nowrap !important;gap:0.6rem !important;}div[data-testid="stHorizontalBlock"]>div[data-testid="stColumn"]{min-width:0 !important;flex:1 1 0 !important;width:auto !important;}</style>', unsafe_allow_html=True)
     st.subheader("Mood")
 
     _latest = (
@@ -1164,7 +1164,7 @@ def page_mood(db, user):
         st.write("")
     with st.form("mood_form"):
         score = st.slider("How are you feeling right now? (1 = very low, 10 = very good)", 1, 10, 5)
-        tags = st.multiselect("Tags (optional)", ["anxious", "tired", "calm", "stressed", "hopeful", "sad", "grateful", "overwhelmed"])
+        tags = list(st.pills("Tags (optional)", ["anxious", "tired", "calm", "stressed", "hopeful", "sad", "grateful", "overwhelmed"], selection_mode="multi") or [])
         note = st.text_area("Note (optional, private and encrypted)")
         submitted = st.form_submit_button("Log mood")
     if submitted:
@@ -1227,7 +1227,7 @@ def page_mood(db, user):
             index=daily_labels,
         )
 
-        st.line_chart(chart_data, y="Daily average", height=250)
+        st.line_chart(chart_data, y="Daily average", height=250, color="#6D3AE0")
 
         valid_daily_averages = [
             value for value in daily_averages
@@ -1313,7 +1313,7 @@ def page_journal(db, user):
     st.subheader("Journal")
     cipher = get_cipher(db, user)
     with st.form("journal_form"):
-        content = st.text_area("What's on your mind?", height=150)
+        content = st.text_area("What's on your mind?", height=150, placeholder="Start with one sentence. It doesn't need to make sense yet.")
         submitted = st.form_submit_button("Save entry")
     if submitted and content.strip():
         entry = models.Journal(user_id=user.id, content_encrypted=cipher.encrypt(content))
@@ -1346,6 +1346,11 @@ def page_summary(db, user):
         """
         <style>
         /* --- Weekly summary / Insights page (purple theme) --- */
+        div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 0.6rem !important; }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { min-width: 0 !important; flex: 1 1 0 !important; width: auto !important; }
+        div[data-testid="stMetric"] { padding: 10px 12px; }
+        div[data-testid="stMetricValue"] { font-size: 22px; }
+        div[data-testid="stVerticalBlockBorderWrapper"] { border-left: 4px solid #6D3AE0; }
         div[data-testid="stMetric"] {
             background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
             border: 1px solid rgba(124, 58, 237, 0.12);
@@ -1702,10 +1707,10 @@ def page_contacts(db, user):
     cipher = get_cipher(db, user)
 
     with st.form("contact_form"):
-        name = st.text_input("Name")
-        phone = st.text_input("Phone")
-        email_c = st.text_input("Email (optional)")
-        relationship = st.text_input("Relationship (optional)")
+        name = st.text_input("Name", placeholder="Full name")
+        phone = st.text_input("Phone", placeholder="+91")
+        email_c = st.text_input("Email (optional)", placeholder="name@example.com")
+        relationship = st.text_input("Relationship (optional)", placeholder="Sister, friend, mentor...")
         consent = st.checkbox("This person has consented to be listed as my emergency contact")
         submitted = st.form_submit_button("Add contact")
     if submitted:
@@ -1730,7 +1735,7 @@ def page_contacts(db, user):
         models.EmergencyContact.user_id == user.id, models.EmergencyContact.active.is_(True)
     ).all()
     if not contacts:
-        st.caption("No emergency contacts added yet.")
+        st.markdown('<div style="border:1.5px dashed rgba(124,58,237,0.35);border-radius:16px;padding:18px;text-align:center;color:#6b5b8a;font-size:13px;"><strong style="color:#2B2250;">No contacts yet</strong><br/>Add one person you&#39;d feel okay reaching out to.</div>', unsafe_allow_html=True)
     for c in contacts:
         col1, col2 = st.columns([4, 1])
         col1.write(f"**{c.name}** ({c.relationship_label or 'unspecified'}) — {_mask(safe_decrypt(cipher, c.phone_encrypted))}")
