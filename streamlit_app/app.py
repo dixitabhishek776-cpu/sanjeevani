@@ -375,18 +375,17 @@ def render_banner():
     )
     st.markdown(
         """
-        <div style="background:#FFF4E5;color:#7A4A00;padding:10px 16px;
-        border-radius:10px;text-align:center;font-size:13px;font-weight:600;
-        margin-bottom:16px;line-height:1.4;border:1px solid #FFE2B8;">
-        🌱 Sanjeevani offers AI-guided emotional support and wellness tools.
-        It is not a substitute for professional diagnosis, therapy, or
-        emergency care. If you're in crisis, please reach out to a crisis
-        line or emergency service right away.
-        </div>
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap');
+        h1, h2, h3 { font-family: 'Lora', Georgia, serif !important; font-weight: 700 !important; color: #2B2250 !important; }
+        .crisis-card { background: #FFFFFF; border-radius: 14px; border-left: 4px solid #6D3AE0; padding: 12px 16px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(105,61,230,0.08); font-size: 13px; color: #2B2250; line-height: 1.4; }
+        .crisis-pills { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .crisis-pill { display: inline-block; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(124,58,237,0.35); background: #FFFFFF; color: #6D3AE0 !important; font-size: 12px; font-weight: 600; text-decoration: none !important; }
+        </style>
+        <div class="crisis-card"><strong>AI-guided support, not a substitute for therapy or emergency care.</strong><div class="crisis-pills"><a class="crisis-pill" href="tel:112">📞 Call 112</a><a class="crisis-pill" href="tel:14416">📞 Tele-MANAS 14416</a></div></div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption(crisis_resources("IN"))
 
 
 # ---------------------------------------------------------------------------
