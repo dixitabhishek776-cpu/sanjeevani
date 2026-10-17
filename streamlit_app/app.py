@@ -830,7 +830,7 @@ def _render_preferences_tab(db, user):
 
     st.divider()
     st.write("**Voice**")
-    speak_on = st.checkbox("🔊 Read replies aloud automatically", value=settings.get("speak_replies", False))
+    speak_on = st.toggle("Read replies aloud", value=settings.get("speak_replies", False), help="Plays each reply automatically.")
     if speak_on != settings.get("speak_replies", False):
         settings["speak_replies"] = speak_on
         prefs.notification_settings = settings
@@ -841,7 +841,7 @@ def _render_preferences_tab(db, user):
     st.divider()
     st.write("**Automatic assist**")
     st.caption("Let the AI gently suggest mood check-ins / screenings based on our chat — never saves anything without your confirmation.")
-    auto_on = st.checkbox("Enable automatic assist", value=settings.get("automation_enabled", False))
+    auto_on = st.toggle("Automatic assist", value=settings.get("automation_enabled", False))
     if auto_on != settings.get("automation_enabled", False):
         settings["automation_enabled"] = auto_on
         prefs.notification_settings = settings
@@ -851,7 +851,7 @@ def _render_preferences_tab(db, user):
 
     st.divider()
     st.write("**Theme**")
-    dark_on = st.checkbox("🌙 Darkmode", value=settings.get("dark_mode", False))
+    dark_on = st.toggle("Dark mode", value=settings.get("dark_mode", False), help="Easier on the eyes at night.")
     if dark_on != settings.get("dark_mode", False):
         settings["dark_mode"] = dark_on
         prefs.notification_settings = settings
