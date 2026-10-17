@@ -566,7 +566,7 @@ def page_login_register():
         """,
         unsafe_allow_html=True,
     )
-    st.title("🌱 Sanjeevani")
+    st.title("Welcome back")
     st.write("A space to reflect. Not a substitute for therapy or medical care.")
 
     _lcol1, _lcol2 = st.columns(2)
@@ -1950,6 +1950,7 @@ def page_intro():
         ".welcome-tagline { margin-top: 24px; font-family: Inter, Arial, sans-serif; font-size: 19px; "
         "line-height: 1.25; font-weight: 500; color: #11113F; }"
         ".welcome-value { margin-top: 14px; font-size: 15px; line-height: 1.4; color: #15153F; }"
+        ".welcome-wrap { position: relative; overflow: hidden; } .welcome-wrap::before, .welcome-wrap::after { content: ''; position: absolute; left: 50%; top: 45%; border-radius: 50%; border: 1px solid rgba(124,58,237,0.14); transform: translate(-50%, -50%); } .welcome-wrap::before { width: 300px; height: 300px; } .welcome-wrap::after { width: 440px; height: 440px; } .welcome-content { position: relative; z-index: 1; }"
         "</style>"
         "<div class=\'welcome-wrap\'>"
         "<div class=\'welcome-content\'>"
@@ -1977,9 +1978,9 @@ def page_intro():
             background-color: #6d28d9;
         }
         button[data-testid="stBaseButton-secondary"] {
-            background-color: transparent;
-            color: #7c3aed;
-            border: 1px solid rgba(124, 58, 237, 0.4);
+            background: transparent !important;
+            color: #7c3aed !important;
+            border: 1px solid rgba(124, 58, 237, 0.4) !important;
             border-radius: 12px;
             font-weight: 600;
         }
@@ -1994,7 +1995,7 @@ def page_intro():
     )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Get Started", use_container_width=True, type="primary"):
+        if st.button("Get started", use_container_width=True, type="primary"):
             st.session_state["onboarding_stage"] = "auth"
             st.rerun()
         st.write("")
@@ -2003,6 +2004,7 @@ def page_intro():
             st.rerun()
 
     st.write("")
+    st.markdown('<div style="background:#fff;border-radius:14px;padding:12px 16px;border:1px solid rgba(124,58,237,0.12);font-size:12px;color:#2B2250;text-align:center;line-height:1.4;"><strong>Not a substitute for therapy or emergency care.</strong><br/>In immediate danger, call 112. Tele-MANAS 24x7: 14416 or 1800-89-14416.</div>', unsafe_allow_html=True)
     _icol1, _icol2 = st.columns(2)
     with _icol1:
         if st.button("📄 Privacy Policy", use_container_width=True, key="intro_privacy_btn"):
