@@ -1812,6 +1812,28 @@ def page_system_status(db):
         """
         <style>
         /* --- System status tab (purple theme) --- */
+        /* Settings leftovers: soft green status pills + delete-account card */
+        div[data-testid="stAlert"] {
+            border-radius: 14px;
+        }
+        div[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
+            background: #F0FBF4;
+            border: 1px solid #BFE9CE;
+        }
+        div[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) p {
+            color: #0F6B3A;
+            font-weight: 600;
+        }
+        div[data-testid="stForm"]:has(button[data-testid="stBaseButton-primaryFormSubmit"]) {
+            background: #FFF7F7;
+            border: 1px solid #F3C4C4;
+        }
+        div[data-testid="stForm"]:has(button[data-testid="stBaseButton-primaryFormSubmit"]) button[data-testid="stBaseButton-primaryFormSubmit"] {
+            background: transparent !important;
+            color: #B42318 !important;
+            border: 1px solid #E8A5A5 !important;
+            box-shadow: none !important;
+        }
         div[data-testid="stMetric"] {
             background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
             border: 1px solid rgba(124, 58, 237, 0.12);
