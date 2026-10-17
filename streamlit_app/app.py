@@ -1459,7 +1459,7 @@ def generate_weekly_insight(db, user, moods, journal_entries, elevated, avg):
 # ---------------------------------------------------------------------------
 
 def page_privacy(db, user):
-    st.markdown('<style>.privacy-card{display:flex;align-items:flex-start;gap:14px;padding:16px;border-radius:20px;margin-bottom:14px;background:rgba(236,253,245,0.65);border:1px solid #D5F4E5;}.privacy-icon{width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:12px;background:white;font-size:17px;}</style><div class="privacy-card"><div class="privacy-icon">🛡️</div><div><strong>Your data, your control</strong><br/><span style="font-size:11px;color:#5c6b60;">Export or delete anytime. Everything sensitive is encrypted per-user.</span></div></div>', unsafe_allow_html=True)
+    st.markdown('<style>.privacy-card{display:flex;align-items:flex-start;gap:14px;padding:16px;border-radius:20px;margin-bottom:14px;background:linear-gradient(135deg,#F0EBFF,#FFF2FA);border:1px solid rgba(124,58,237,0.15);border-left:4px solid #6D3AE0;}.privacy-icon{width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:12px;background:white;font-size:17px;}</style><div class="privacy-card"><div class="privacy-icon">🛡️</div><div><strong>Your data, your control</strong><br/><span style="font-size:11px;color:#5c6b60;">Export or delete anytime. Everything sensitive is encrypted per-user.</span></div></div>', unsafe_allow_html=True)
     st.subheader("Privacy & data")
     with st.expander("📄 Privacy Policy"):
         st.markdown(PRIVACY_POLICY_MD)
@@ -1473,11 +1473,11 @@ def page_privacy(db, user):
         db.refresh(prefs)
 
     with st.form("prefs_form"):
-        ltm = st.checkbox("Long-term memory", value=prefs.long_term_memory_enabled)
-        voice = st.checkbox("Voice emotion analysis", value=prefs.voice_emotion_enabled)
-        wearable = st.checkbox("Wearable integration", value=prefs.wearable_integration_enabled)
-        research = st.checkbox("Research participation (opt-in)", value=prefs.research_participation_opt_in)
-        contacts_enabled = st.checkbox("Emergency contacts enabled", value=prefs.emergency_contacts_enabled)
+        ltm = st.toggle("Long-term memory", value=prefs.long_term_memory_enabled)
+        voice = st.toggle("Voice emotion analysis", value=prefs.voice_emotion_enabled)
+        wearable = st.toggle("Wearable integration", value=prefs.wearable_integration_enabled)
+        research = st.toggle("Research participation (opt-in)", value=prefs.research_participation_opt_in)
+        contacts_enabled = st.toggle("Emergency contacts enabled", value=prefs.emergency_contacts_enabled)
         submitted = st.form_submit_button("Save preferences")
     if submitted:
         changes = {
