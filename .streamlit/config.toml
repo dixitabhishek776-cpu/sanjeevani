@@ -11,3 +11,6 @@ magicEnabled = false
 # Serves streamlit_app/static/* at <app-url>/app/static/* — needed so the
 # browser can fetch manifest.json / icons / sw.js for "Add to Home Screen".
 enableStaticServing = true
+
+[theme]
+primaryColor = "#7c3aed"

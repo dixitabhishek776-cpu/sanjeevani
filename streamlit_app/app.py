@@ -1609,6 +1609,21 @@ def page_contacts(db, user):
         """
         <style>
         /* --- Contacts page (purple theme) --- */
+        .privacy-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #F0EBFF, #FFF2FA);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            color: #41336E;
+        }
+        .privacy-icon {
+            font-size: 26px;
+            line-height: 1;
+        }
         div[data-testid="stForm"] {
             background: linear-gradient(135deg, #F7F4FF, #FFFFFF);
             border: 1px solid rgba(124, 58, 237, 0.12);
