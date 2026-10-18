@@ -2279,6 +2279,9 @@ def main():
             if current_streak > 0:
                 badge = streak_badge_for(current_streak)
                 st.metric("🔥 Mood streak", f"{current_streak} day{'s' if current_streak != 1 else ''}")
+                _next_ms = next((m for m in STREAK_MILESTONES if m > current_streak), None)
+                _pct = int(current_streak / _next_ms * 100) if _next_ms else 100
+                st.markdown(f'<div style="height:6px;border-radius:999px;background:#ECE8F8;overflow:hidden;margin:-4px 0 8px;"><div style="width:{_pct}%;height:100%;background:linear-gradient(90deg,#8B5CF6,#6752D7);"></div></div>', unsafe_allow_html=True)
                 if badge:
                     remaining = [m for m in STREAK_MILESTONES if m > current_streak]
                     next_note = f" · next badge at {remaining[0]} days" if remaining else " · all badges earned! 🎉"
@@ -2292,7 +2295,8 @@ def main():
                 pages.append("🛡️ Reviewer dashboard")
             choice = st.radio("Navigate", pages, label_visibility="collapsed")
             st.divider()
-            if st.button("Sign out"):
+            st.markdown('<style>.st-key-signout_btn button{background:transparent !important;color:#6D3AE0 !important;border:1px solid rgba(124,58,237,0.4) !important;box-shadow:none !important;}</style>', unsafe_allow_html=True)
+            if st.button("Sign out", key="signout_btn", use_container_width=True):
                 clear_session_cookie()
                 st.session_state.clear()
                 st.rerun()
