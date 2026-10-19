@@ -759,6 +759,37 @@ def render_breathing_exercise():
     )
 
 
+def page_my_profile(db, user):
+    """Full Profile page (Overview / Account & security / Edit profile)."""
+    from sj_ui_theme import inject_theme
+    from sj_profile_service import SQLProfileService
+    from sj_profile_page import render_profile_page
+    inject_theme()
+    svc = SQLProfileService(db, user, dict(
+        models=models, get_cipher=get_cipher, safe_decrypt=safe_decrypt,
+        hash_password=hash_password, verify_password=verify_password,
+        log_audit=_log_audit, mood_streak=compute_mood_streak))
+
+    def _goto(target):
+        st.session_state["nav_goto"] = target
+        st.rerun()
+
+    def _sign_out():
+        clear_session_cookie()
+        st.session_state.clear()
+
+    def _deleted():
+        clear_session_cookie()
+        st.session_state.clear()
+        st.rerun()
+
+    render_profile_page(svc, user.id,
+                        on_add_contact=lambda: _goto("💜 Contacts"),
+                        on_setup_2fa=lambda: _goto("⚙️ Settings"),
+                        on_sign_out=_sign_out,
+                        on_account_deleted=_deleted)
+
+
 def page_profile(db, user):
     st.subheader("Profile")
     st.write("**Account**")
@@ -2290,10 +2321,12 @@ def main():
                     st.caption(f"Best: {longest_streak} days · next badge at {STREAK_MILESTONES[0]} days")
             else:
                 st.caption("Log your mood today to start a streak 🔥")
-            pages = ["💬 Chat", "😊 Mood", "📔 Journal", "📊 Insights", "💜 Contacts", "⚙️ Settings"]
+            pages = ["💬 Chat", "😊 Mood", "📔 Journal", "📊 Insights", "💜 Contacts", "👤 Profile", "⚙️ Settings"]
             if user.role in ("reviewer", "super_admin"):
                 pages.append("🛡️ Reviewer dashboard")
-            choice = st.radio("Navigate", pages, label_visibility="collapsed")
+            if "nav_goto" in st.session_state:
+                st.session_state["nav_choice"] = st.session_state.pop("nav_goto")
+            choice = st.radio("Navigate", pages, key="nav_choice", label_visibility="collapsed")
             st.divider()
             st.markdown('<style>.st-key-signout_btn button{background:transparent !important;color:#6D3AE0 !important;border:1px solid rgba(124,58,237,0.4) !important;box-shadow:none !important;}</style>', unsafe_allow_html=True)
             if st.button("Sign out", key="signout_btn", use_container_width=True):
@@ -2303,6 +2336,8 @@ def main():
 
         if choice == "💬 Chat":
             run_page_safely(page_chat, db, user)
+        elif choice == "👤 Profile":
+            run_page_safely(page_my_profile, db, user)
         elif choice == "⚙️ Settings":
             run_page_safely(page_settings, db, user)
         elif choice == "😊 Mood":
