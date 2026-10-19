@@ -818,8 +818,8 @@ def page_profile(db, user):
     if pw_submitted:
         if not verify_password(current_pw, user.password_hash):
             st.error("Current password is incorrect.")
-        elif len(new_pw) < 8:
-            st.error("New password must be at least 8 characters.")
+        elif len(new_pw) < 12:
+            st.error("New password must be at least 12 characters.")
         elif new_pw != confirm_pw:
             st.error("New passwords don't match.")
         else:

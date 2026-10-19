@@ -94,10 +94,10 @@ def _account(svc, uid, p, on_setup_2fa, on_sign_out, on_account_deleted):
         with c1.popover("Change password", use_container_width=True):
             with st.form("pf_pw", clear_on_submit=True, border=False):
                 cur = st.text_input("Current password", type="password")
-                new = st.text_input("New password", type="password", help="At least 8 characters.")
+                new = st.text_input("New password", type="password", help="At least 12 characters.")
                 new2 = st.text_input("Confirm new password", type="password")
                 if st.form_submit_button("Update password", type="primary", use_container_width=True):
-                    if len(new) < 8: st.error("Use at least 8 characters.")
+                    if len(new) < 12: st.error("Use at least 12 characters.")
                     elif new != new2: st.error("The two new passwords don't match.")
                     else:
                         err = svc.change_password(uid, cur, new)

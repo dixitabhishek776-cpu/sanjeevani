@@ -146,8 +146,8 @@ class SQLProfileService(ProfileService):
         h, u = self.h, self.user
         if not h["verify_password"](current, u.password_hash):
             return "Current password is incorrect."
-        if len(new) < 8:
-            return "New password must be at least 8 characters."
+        if len(new) < 12:
+            return "New password must be at least 12 characters."
         u.password_hash = h["hash_password"](new)
         h["log_audit"](self.db, u.id, "password_changed", "user", u.id, {})
         self.db.commit()
