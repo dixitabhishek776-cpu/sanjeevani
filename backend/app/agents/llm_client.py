@@ -154,16 +154,31 @@ def call_llm(system: str, user_message: str, max_tokens: int = 400) -> str:
 
 
 def call_llm_json(system: str, user_message: str, max_tokens: int = 400) -> dict:
-    """Completion that expects a strict JSON object back. Raises ValueError
-    if the model doesn't return parseable JSON — treat as a classifier
-    failure and fail closed, don't retry-loop indefinitely."""
-    raw = call_llm(system, user_message, max_tokens=max_tokens)
-    cleaned = raw.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:]
-    try:
-        return json.loads(cleaned.strip())
-    except json.JSONDecodeError as e:
-        raise ValueError(f"LLM did not return valid JSON: {raw!r}") from e
+    """Completion that expects a strict JSON object back. Retries up to 3 times when the
+    model returns an empty or unparseable reply (this happens occasionally), and extracts
+    the first {...} object if the model wraps it in extra text. Raises ValueError only if
+    every attempt fails - callers still fail closed."""
+    import re
+    last_raw = ""
+    for attempt in range(3):
+        raw = call_llm(system, user_message, max_tokens=max_tokens)
+        last_raw = raw
+        cleaned = (raw or "").strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            m = re.search(r"\{.*\}", cleaned, re.S)
+            if m:
+                try:
+                    return json.loads(m.group(0))
+                except json.JSONDecodeError:
+                    pass
+        record_incident("llm_json_retry", f"attempt {attempt + 1}/3 returned unusable JSON: {raw!r}"[:300])
+        if attempt < 2:
+            time.sleep(0.4 * (attempt + 1))
+    raise ValueError(f"LLM did not return valid JSON: {last_raw!r}")
