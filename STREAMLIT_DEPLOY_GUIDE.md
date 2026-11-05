@@ -33,12 +33,14 @@ SANJEEVANI_DEMO_MODE = "true"
 To generate a `SANJEEVANI_MASTER_KEY` (a valid Fernet key), you can ask
 Claude to generate one for you, or run this in Termux if you have
 `cryptography` available — otherwise any 32 random bytes, base64
-url-safe encoded, works. Here's a ready-to-use one generated for this
-guide (fine to use directly, since it's fresh and only you have it):
+url-safe encoded, works. Generate one with the command below. Generate your own and keep it private (never commit it or paste it
+into a public place):
 
 ```
-SANJEEVANI_MASTER_KEY = "Y8vCBL1ngyEn32AalUr6M6E_YJuh1dQ5n3wme0fvm84="
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
+
+Then put the printed value in your Streamlit secrets as `SANJEEVANI_MASTER_KEY`.
 
 You can copy `DATABASE_URL` and `REDIS_URL` straight from your existing
 Render dashboard (`sanjeevani-demo-db` and `sanjeevani-demo-redis` →
