@@ -22,6 +22,12 @@ from app.agents.intervention_engine import select_intervention
 
 logger = logging.getLogger(__name__)
 
+CRISIS_FALLBACK_TEXT = (
+    "I'm really glad you told me. What you're feeling matters, and you don't "
+    "have to carry it alone. Please reach out to someone who can be with you "
+    "right now - the numbers below are free and available any time. I'm still here."
+)
+
 CRISIS_RESOURCES_TEXT = (
     crisis_resources("IN")
 )
@@ -144,10 +150,10 @@ class ConversationAgent:
                 ),
                 max_tokens=250,
             )
-            text = text.strip() or SAFE_FALLBACK_TEXT
+            text = text.strip() or (CRISIS_FALLBACK_TEXT if safety_directive.get("show_resources_first") else SAFE_FALLBACK_TEXT)
         except Exception:
             logger.exception("Conversation Agent LLM call failed; using safe fallback")
-            text = SAFE_FALLBACK_TEXT
+            text = CRISIS_FALLBACK_TEXT if safety_directive.get("show_resources_first") else SAFE_FALLBACK_TEXT
 
         intervention = select_intervention(concern_level, "negative" if concern_level == "moderate" else "neutral")
         return {
