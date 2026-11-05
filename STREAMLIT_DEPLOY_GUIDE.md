@@ -24,7 +24,7 @@ Same as before: unzip, `git add .`, `git commit`, `git push` from Termux.
 ```toml
 DATABASE_URL = "postgresql://...same value as your Render Postgres..."
 REDIS_URL = "redis://...same value as your Render Redis..."
-GROQ_API_KEY = "gsk_...your key..."
+GROQ_API_KEY = "gsk_xxx"
 SANJEEVANI_ENCRYPTION_PROVIDER = "local_dev"
 SANJEEVANI_MASTER_KEY = "...generate one, see below..."
 SANJEEVANI_DEMO_MODE = "true"
