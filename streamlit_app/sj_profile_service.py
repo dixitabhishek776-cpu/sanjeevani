@@ -146,9 +146,15 @@ class SQLProfileService(ProfileService):
         h, u = self.h, self.user
         if not h["verify_password"](current, u.password_hash):
             return "Current password is incorrect."
-        if len(new) < 12:
-            return "New password must be at least 12 characters."
+        from app.core.password_policy import password_problem
+        problem = password_problem(new, email=u.email, name=u.display_name)
+        if problem:
+            return problem
         u.password_hash = h["hash_password"](new)
+        import datetime as _dt
+        self.db.query(self.m.RefreshToken).filter(
+            self.m.RefreshToken.user_id == u.id, self.m.RefreshToken.revoked_at.is_(None)
+        ).update({"revoked_at": _dt.datetime.now(_dt.timezone.utc)}, synchronize_session=False)
         h["log_audit"](self.db, u.id, "password_changed", "user", u.id, {})
         self.db.commit()
         return None
@@ -172,12 +178,8 @@ class SQLProfileService(ProfileService):
         h, u, m, db = self.h, self.user, self.m, self.db
         if not h["verify_password"](password, u.password_hash):
             return "Incorrect password."
-        import datetime as dt
-        now = dt.datetime.now(dt.timezone.utc)
-        u.deleted_at = now
-        key_row = db.query(m.UserEncryptionKey).filter(m.UserEncryptionKey.user_id == u.id).first()
-        if key_row:
-            key_row.revoked_at = now
+        from app.services import scrub_deleted_user
+        scrub_deleted_user(db, u)
         h["log_audit"](db, u.id, "account_deletion_requested", "user", u.id, {"confirmation": True})
         db.commit()
         return None

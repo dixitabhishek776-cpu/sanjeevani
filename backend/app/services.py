@@ -85,3 +85,31 @@ INDIA_RESOURCES = (
 def crisis_resources(country="IN"):
     if country.upper() == "IN": return INDIA_RESOURCES
     return "If you are in immediate danger, contact your local emergency service or a local crisis line now."
+
+
+def scrub_deleted_user(db, user, now=None):
+    """Applies an account deletion consistently (used by the Streamlit app, the
+    profile page and the API): marks the account deleted, shreds the user's
+    encryption key (so encrypted content can never be read again), revokes any
+    "keep me signed in" / refresh tokens, and removes personal identifiers so
+    the email address can be used to register again later."""
+    import datetime as _dt
+    import secrets as _secrets
+    from app import models
+    from app.core.auth import hash_password
+
+    now = now or _dt.datetime.now(_dt.timezone.utc)
+    user.deleted_at = now
+    key_row = db.query(models.UserEncryptionKey).filter(models.UserEncryptionKey.user_id == user.id).first()
+    if key_row:
+        key_row.revoked_at = now
+    db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user.id, models.RefreshToken.revoked_at.is_(None)
+    ).update({"revoked_at": now}, synchronize_session=False)
+    prefs = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == user.id).first()
+    if prefs:
+        prefs.notification_settings = {}
+    db.query(models.EmergencyContact).filter(models.EmergencyContact.user_id == user.id).delete(synchronize_session=False)
+    user.email = f"deleted-{user.id}@deleted.invalid"
+    user.display_name = None
+    user.password_hash = hash_password(_secrets.token_urlsafe(32))  # valid hash nobody knows

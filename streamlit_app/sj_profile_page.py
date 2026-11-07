@@ -97,8 +97,7 @@ def _account(svc, uid, p, on_setup_2fa, on_sign_out, on_account_deleted):
                 new = st.text_input("New password", type="password", help="At least 12 characters.")
                 new2 = st.text_input("Confirm new password", type="password")
                 if st.form_submit_button("Update password", type="primary", use_container_width=True):
-                    if len(new) < 12: st.error("Use at least 12 characters.")
-                    elif new != new2: st.error("The two new passwords don't match.")
+                    if new != new2: st.error("The two new passwords don't match.")
                     else:
                         err = svc.change_password(uid, cur, new)
                         st.error(err) if err else st.success("Password updated.")

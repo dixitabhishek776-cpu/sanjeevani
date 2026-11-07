@@ -135,12 +135,8 @@ def delete_account(
     if user.deleted_at is not None:
         return {"status": "already_deleted"}
 
-    now = dt.datetime.now(dt.timezone.utc)
-    user.deleted_at = now
-    key_row = db.query(models.UserEncryptionKey).filter(models.UserEncryptionKey.user_id == user.id).first()
-    if key_row:
-        key_row.revoked_at = now
-    db.query(models.RefreshToken).filter(models.RefreshToken.user_id == user.id, models.RefreshToken.revoked_at.is_(None)).update({"revoked_at": now}, synchronize_session=False)
+    from app.services import scrub_deleted_user
+    scrub_deleted_user(db, user)
     _log_audit(db, user.id, "account_deletion_requested", "user", user.id, {"confirmation": True})
     db.commit()
     return {"status": "deletion_processed"}

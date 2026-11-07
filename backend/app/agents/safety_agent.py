@@ -207,6 +207,17 @@ def decision_router(assessment: SafetyAssessment) -> dict:
             "create_alert": True,
         }
     if assessment.concern_level == "moderate":
+        if "classifier_error_fail_closed" in (assessment.contributing_factors or []):
+            # The classifier itself was unavailable, so this says nothing about
+            # the person. Fail closed for the user (helplines are shown with the
+            # reply) but do not flood the human review queue during an outage.
+            return {
+                "show_resources_first": False,
+                "notify_emergency_contact": False,
+                "human_escalation": "none_classifier_unavailable",
+                "create_alert": False,
+                "degraded": True,
+            }
         return {
             "show_resources_first": False,
             "notify_emergency_contact": False,

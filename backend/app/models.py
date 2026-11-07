@@ -7,6 +7,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 
 from app.database import Base
 
@@ -57,7 +58,7 @@ class UserPreferences(Base):
     wearable_integration_enabled = Column(Boolean, default=False)
     research_participation_opt_in = Column(Boolean, default=False)
     emergency_contacts_enabled = Column(Boolean, default=False)
-    notification_settings = Column(JSONB, default=dict)
+    notification_settings = Column(MutableDict.as_mutable(JSONB), default=dict)
 
     user = relationship("User", back_populates="preferences")
 

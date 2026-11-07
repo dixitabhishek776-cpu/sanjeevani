@@ -13,6 +13,7 @@ replacement for professional diagnosis, therapy, or emergency care --
 see the notice rendered on every page.
 """
 import os
+import re
 import requests
 import time
 import sys
@@ -44,7 +45,8 @@ from app.agents.emotion_agent import EmotionAnalysisAgent  # noqa: E402
 from app.agents.safety_agent import SafetyIntelligenceAgent, decision_router  # noqa: E402
 from app.agents.conversation_agent import ConversationAgent, COMPANION_NAME  # noqa: E402
 from app.agents.llm_client import call_llm  # noqa: E402
-from app.services import rate_limiter, crisis_resources  # noqa: E402
+from app.services import rate_limiter, crisis_resources, scrub_deleted_user  # noqa: E402
+from app.core.password_policy import password_problem  # noqa: E402
 from app.incident_log import record_incident, recent_incidents  # noqa: E402
 
 logging.basicConfig(level=os.getenv("SANJEEVANI_LOG_LEVEL", "INFO"))
@@ -97,6 +99,34 @@ def safe_decrypt(cipher: UserCipher, ciphertext) -> str:
         return "⚠️ Could not decrypt this entry (it may have been saved under a since-rotated encryption key)."
 
 
+def read_totp_secret(db, user, settings):
+    """Returns the user's TOTP secret. Secrets are stored encrypted under the
+    per-user key (totp_secret_enc); older accounts may still hold a plaintext
+    totp_secret, which is migrated to the encrypted form on first read."""
+    import base64
+    enc = settings.get("totp_secret_enc")
+    if enc:
+        try:
+            return get_cipher(db, user).decrypt(base64.b64decode(enc))
+        except Exception:
+            return None
+    legacy = settings.get("totp_secret")
+    if legacy:
+        write_totp_secret(db, user, settings, legacy)
+        return legacy
+    return None
+
+
+def write_totp_secret(db, user, settings, secret):
+    """Stores (or clears, when secret is None) the TOTP secret, encrypted."""
+    import base64
+    settings.pop("totp_secret", None)
+    if secret:
+        settings["totp_secret_enc"] = base64.b64encode(get_cipher(db, user).encrypt(secret)).decode()
+    else:
+        settings.pop("totp_secret_enc", None)
+
+
 def transcribe_audio(audio_bytes: bytes) -> str:
     """Voice input: sends recorded audio to Groq's free Whisper endpoint
     (2,000 requests/day free, no card) and returns the transcribed text.
@@ -125,22 +155,135 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Persistent login ("remember me") — DISABLED
+# Persistent login ("keep me signed in")
 # ---------------------------------------------------------------------------
-# Two third-party cookie libraries both proved unreliable in this Streamlit
-# version: one had a read-timing race, the other crashed the whole app
-# with a set_page_config ordering conflict. Disabled for now so the app
-# is stable (you have to log in again after a refresh, as before).
-def set_session_cookie(user_id: str):
-    pass
+# How it works (no third-party cookie library):
+#   * On login the server creates a random token, stores only its SHA-256 hash
+#     in the refresh_tokens table (14-day expiry) and asks the browser to keep
+#     the raw token in a cookie (written by a tiny script, see flush_cookie_ops).
+#   * On a fresh page load, st.context.cookies gives us that cookie; if the
+#     hash matches an unexpired, unrevoked token of an active user, the session
+#     is restored.
+#   * Sign-out, password change and account deletion revoke tokens on the
+#     server, so a stolen or stale cookie stops working immediately.
+# Limitation: a cookie written by page script cannot be HttpOnly.
+REMEMBER_COOKIE = "sj_remember"
+REMEMBER_DAYS = 14
+
+
+def _hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def set_session_cookie(user_id: str, remember: bool = True):
+    if not remember:
+        return
+    db = get_db()
+    try:
+        raw = secrets.token_urlsafe(40)
+        db.add(models.RefreshToken(
+            user_id=user_id, token_hash=_hash_token(raw),
+            expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=REMEMBER_DAYS),
+        ))
+        db.commit()
+        st.session_state["_cookie_set"] = raw
+    except Exception:
+        db.rollback()
+        logging.getLogger("sanjeevani.streamlit").exception("Could not create remember-me token")
+    finally:
+        db.close()
 
 
 def clear_session_cookie():
-    pass
+    """Revokes the current browser's token on the server and asks the browser
+    to delete the cookie. Call this AFTER st.session_state.clear()."""
+    try:
+        raw = st.context.cookies.get(REMEMBER_COOKIE)
+    except Exception:
+        raw = None
+    if raw:
+        db = get_db()
+        try:
+            db.query(models.RefreshToken).filter(
+                models.RefreshToken.token_hash == _hash_token(raw),
+                models.RefreshToken.revoked_at.is_(None),
+            ).update({"revoked_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+    st.session_state["_cookie_clear"] = True
+
+
+def revoke_all_remember_tokens(db, user_id):
+    db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user_id, models.RefreshToken.revoked_at.is_(None)
+    ).update({"revoked_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False)
+
+
+def flush_cookie_ops():
+    """Writes or deletes the browser cookie requested during the previous run."""
+    raw = st.session_state.pop("_cookie_set", None)
+    clear = st.session_state.pop("_cookie_clear", False)
+    if raw is None and not clear:
+        return
+    if raw is not None:
+        value, max_age = raw, REMEMBER_DAYS * 86400
+    else:
+        value, max_age = "", 0
+    st.components.v1.html(
+        "<script>"
+        "try{var d=window.parent.document;"
+        "var sec=(window.parent.location.protocol==='https:')?'; Secure':'';"
+        f"d.cookie='{REMEMBER_COOKIE}={value}; path=/; max-age={max_age}; SameSite=Lax'+sec;"
+        "}catch(e){}"
+        "</script>",
+        height=0,
+    )
 
 
 def restore_session_from_cookie():
-    pass
+    if "user_id" in st.session_state:
+        return
+    try:
+        raw = st.context.cookies.get(REMEMBER_COOKIE)
+    except Exception:
+        raw = None
+    if not raw:
+        return
+    db = get_db()
+    try:
+        row = db.query(models.RefreshToken).filter(
+            models.RefreshToken.token_hash == _hash_token(raw),
+            models.RefreshToken.revoked_at.is_(None),
+        ).first()
+        now = dt.datetime.now(dt.timezone.utc)
+        if not row or row.expires_at <= now:
+            return
+        user = db.query(models.User).filter(
+            models.User.id == row.user_id, models.User.deleted_at.is_(None)
+        ).first()
+        if not user or (user.locked_until and user.locked_until > now):
+            return
+        st.session_state["user_id"] = str(user.id)
+        _log_audit(db, user.id, "session_restored_from_cookie", "user", user.id, {})
+        db.commit()
+    except Exception:
+        db.rollback()
+        logging.getLogger("sanjeevani.streamlit").exception("Session restore failed")
+    finally:
+        db.close()
+
+
+# One-time messages that must survive an st.rerun().
+def flash(message: str, kind: str = "success"):
+    st.session_state.setdefault("_flash", []).append((kind, message))
+
+
+def show_flash():
+    for kind, message in st.session_state.pop("_flash", []):
+        {"success": st.success, "info": st.info, "warning": st.warning, "error": st.error}.get(kind, st.info)(message)
 
 
 def compute_mood_streak(db, user):
@@ -588,6 +731,7 @@ def page_login_register():
         with st.form("login_form"):
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type="password", key="login_password")
+            remember_me = st.checkbox("Keep me signed in on this device (14 days)", value=True, key="login_remember")
             submitted = st.form_submit_button("Sign in")
         if submitted:
             db = get_db()
@@ -622,10 +766,11 @@ def page_login_register():
                 totp_settings = (prefs.notification_settings or {}) if prefs else {}
                 if totp_settings.get("totp_enabled"):
                     st.session_state["pending_2fa_user_id"] = str(user.id)
+                    st.session_state["pending_remember"] = bool(remember_me)
                     st.rerun()
                 else:
                     st.session_state["user_id"] = str(user.id)
-                    set_session_cookie(str(user.id))
+                    set_session_cookie(str(user.id), bool(remember_me))
                     st.rerun()
             finally:
                 db.close()
@@ -647,11 +792,14 @@ def page_login_register():
                 prefs = db.query(models.UserPreferences).filter(
                     models.UserPreferences.user_id == uid
                 ).first()
-                secret = (prefs.notification_settings or {}).get("totp_secret") if prefs else None
+                login_user = db.query(models.User).filter(models.User.id == uid).first()
+                secret = read_totp_secret(db, login_user, prefs.notification_settings) if (prefs and login_user) else None
+                if prefs and login_user:
+                    db.commit()  # persists the one-time plaintext->encrypted migration
                 if secret and pyotp.TOTP(secret).verify(code.strip(), valid_window=1):
                     del st.session_state["pending_2fa_user_id"]
                     st.session_state["user_id"] = uid
-                    set_session_cookie(uid)
+                    set_session_cookie(uid, st.session_state.pop("pending_remember", True))
                     st.rerun()
                 else:
                     st.error("Incorrect code. Please try again.")
@@ -667,16 +815,25 @@ def page_login_register():
                 "Password", type="password", key="reg_password",
                 help="Use at least 12 characters.",
             )
+            age_ok = st.checkbox("I am 18 years old or older", key="reg_age_ok")
+            terms_ok = st.checkbox("I agree to the Terms of Service and Privacy Policy", key="reg_terms_ok")
             submitted_r = st.form_submit_button("Create account")
         if submitted_r:
             db = get_db()
             try:
-                if password_r.strip() != password_r or len(password_r) < 12:
-                    st.error("Password must be at least 12 characters, with no leading/trailing spaces.")
-                    return
                 email_norm = email_r.strip().lower()
-                if not email_norm or "@" not in email_norm:
+                if not email_norm or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_norm):
                     st.error("Please enter a valid email address.")
+                    return
+                if not age_ok:
+                    st.error("Sanjeevani is for people aged 18 and over. Please confirm your age to continue.")
+                    return
+                if not terms_ok:
+                    st.error("Please agree to the Terms of Service and Privacy Policy to continue.")
+                    return
+                _pw_problem = password_problem(password_r, email=email_norm, name=name)
+                if _pw_problem:
+                    st.error(_pw_problem)
                     return
                 if not rate_limiter.allow(f"register:{email_norm}"):
                     st.error("Too many attempts. Please try again later.")
@@ -697,6 +854,10 @@ def page_login_register():
                     user_id=user.id, consent_type="terms",
                     version=os.getenv("SANJEEVANI_TERMS_VERSION", "1.0"), granted=True,
                 ))
+                db.add(models.ConsentRecord(
+                    user_id=user.id, consent_type="age_18_plus",
+                    version=os.getenv("SANJEEVANI_TERMS_VERSION", "1.0"), granted=True,
+                ))
                 verify_raw = secrets.token_urlsafe(48)
                 db.add(models.VerificationToken(
                     user_id=user.id,
@@ -708,11 +869,14 @@ def page_login_register():
                 verify_link = f"{app_url}/?verify={verify_raw}"
                 email_sent = email_service.send_verification_email(email_norm, verify_link)
                 if email_sent:
-                    st.success("Account created! Check your email for a verification link.")
+                    st.success("Account created! Check your email for a verification link, then sign in.")
+                elif email_verification_required():
+                    st.success("Account created!")
+                    st.warning(
+                        "We couldn't send the verification email just now. Sign in and use "
+                        "\"Resend link\" on the next screen."
+                    )
                 else:
-                    # Demo fallback: no email provider configured (or send
-                    # failed) — don't lock the user out of a demo, but be
-                    # honest that verification wasn't actually completed.
                     st.success("Account created!")
                     st.info(
                         "Email verification isn't configured on this deployment, "
@@ -775,12 +939,13 @@ def page_my_profile(db, user):
         st.rerun()
 
     def _sign_out():
-        clear_session_cookie()
         st.session_state.clear()
+        clear_session_cookie()
 
     def _deleted():
-        clear_session_cookie()
         st.session_state.clear()
+        clear_session_cookie()
+        flash("Your account has been deleted.")
         st.rerun()
 
     render_profile_page(svc, user.id,
@@ -788,45 +953,6 @@ def page_my_profile(db, user):
                         on_setup_2fa=lambda: _goto("⚙️ Settings"),
                         on_sign_out=_sign_out,
                         on_account_deleted=_deleted)
-
-
-def page_profile(db, user):
-    st.subheader("Profile")
-    st.write("**Account**")
-    st.text_input("Email", value=user.email, disabled=True)
-    if user.created_at:
-        st.caption("Member since " + user.created_at.strftime("%d %b %Y"))
-    if user.role != "user":
-        st.caption("Role: " + user.role)
-
-    st.divider()
-    st.write("**Display name**")
-    new_name = st.text_input("Display name", value=user.display_name or "", max_chars=100)
-    if st.button("Save name"):
-        user.display_name = new_name.strip() or None
-        db.commit()
-        st.success("Display name updated.")
-        st.rerun()
-
-    st.divider()
-    st.write("**Change password**")
-    with st.form("change_password_form"):
-        current_pw = st.text_input("Current password", type="password")
-        new_pw = st.text_input("New password", type="password")
-        confirm_pw = st.text_input("Confirm new password", type="password")
-        pw_submitted = st.form_submit_button("Update password")
-    if pw_submitted:
-        if not verify_password(current_pw, user.password_hash):
-            st.error("Current password is incorrect.")
-        elif len(new_pw) < 12:
-            st.error("New password must be at least 12 characters.")
-        elif new_pw != confirm_pw:
-            st.error("New passwords don't match.")
-        else:
-            user.password_hash = hash_password(new_pw)
-            _log_audit(db, user.id, "password_changed", "user", user.id, {})
-            db.commit()
-            st.success("Password updated.")
 
 
 def _render_preferences_tab(db, user):
@@ -887,7 +1013,7 @@ def _render_preferences_tab(db, user):
         settings["dark_mode"] = dark_on
         prefs.notification_settings = settings
         db.commit()
-        st.success("Theme updated.")
+        flash("Theme updated.")
         st.rerun()
 
 
@@ -991,7 +1117,7 @@ def page_chat(db, user):
                     if st.button("Log this mood", key=f"auto_mood_save_{_i}"):
                         db.add(models.MoodEntry(user_id=user.id, mood_score=_sm, tags=["auto-suggested"]))
                         db.commit()
-                        st.success("Mood logged.")
+                        flash("Mood logged.")
                         st.rerun()
             if msg.get("suggest_screening"):
                 st.info(
@@ -1119,6 +1245,9 @@ def page_chat(db, user):
     db.add(safety_record)
     db.flush()
 
+    if directive.get("degraded"):
+        record_incident("safety_classifier_degraded", assessment.explanation[:200])
+
     if directive["create_alert"]:
         alert = models.Alert(safety_assessment_id=safety_record.id, status="pending_review")
         db.add(alert)
@@ -1139,6 +1268,11 @@ def page_chat(db, user):
         companion_name=companion_name,
     )
 
+    if directive.get("degraded") and not ai_reply.get("resources_text"):
+        # Safety check was unavailable for this message: fail closed by always
+        # showing the helplines alongside the reply.
+        ai_reply["resources_text"] = crisis_resources("IN")
+
     ai_msg = models.Message(chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"]))
     db.add(ai_msg)
     db.flush()
@@ -1147,11 +1281,11 @@ def page_chat(db, user):
     suggested_mood = None
     suggest_screening = False
     if st.session_state.get("automation_enabled"):
-        if assessment.concern_level == "moderate":
+        if assessment.concern_level == "moderate" and not directive.get("degraded"):
             suggested_mood = 4
         elif assessment.concern_level == "high":
             suggested_mood = 2
-        if assessment.concern_level in ("moderate", "high", "immediate"):
+        if assessment.concern_level in ("moderate", "high", "immediate") and not directive.get("degraded"):
             st.session_state["elevated_concern_count"] = st.session_state.get("elevated_concern_count", 0) + 1
             if st.session_state["elevated_concern_count"] == 2:
                 suggest_screening = True
@@ -1575,14 +1709,14 @@ def page_privacy(db, user):
             confirm_code = st.text_input("Enter a current code from your authenticator app to disable 2FA", max_chars=6)
             disable_submitted = st.form_submit_button("Disable 2FA")
         if disable_submitted:
-            secret = settings.get("totp_secret")
+            secret = read_totp_secret(db, user, settings)
             if secret and pyotp.TOTP(secret).verify(confirm_code.strip(), valid_window=1):
                 settings["totp_enabled"] = False
-                settings["totp_secret"] = None
+                write_totp_secret(db, user, settings, None)
                 prefs.notification_settings = settings
                 _log_audit(db, user.id, "2fa_disabled", "user_preferences", user.id, {})
                 db.commit()
-                st.success("2FA disabled.")
+                flash("2FA disabled.")
                 st.rerun()
             else:
                 st.error("Incorrect code.")
@@ -1607,12 +1741,12 @@ def page_privacy(db, user):
             if confirm_submitted:
                 if pyotp.TOTP(secret).verify(verify_code.strip(), valid_window=1):
                     settings["totp_enabled"] = True
-                    settings["totp_secret"] = secret
+                    write_totp_secret(db, user, settings, secret)
                     prefs.notification_settings = settings
                     _log_audit(db, user.id, "2fa_enabled", "user_preferences", user.id, {})
                     db.commit()
                     del st.session_state["pending_totp_secret"]
-                    st.success("2FA enabled!")
+                    flash("2FA enabled!")
                     st.rerun()
                 else:
                     st.error("Incorrect code. Please try again.")
@@ -1646,15 +1780,12 @@ def page_privacy(db, user):
         elif not confirm:
             st.error("Please confirm you understand this is permanent.")
         else:
-            now = dt.datetime.now(dt.timezone.utc)
-            user.deleted_at = now
-            key_row = db.query(models.UserEncryptionKey).filter(models.UserEncryptionKey.user_id == user.id).first()
-            if key_row:
-                key_row.revoked_at = now
+            scrub_deleted_user(db, user)
             _log_audit(db, user.id, "account_deletion_requested", "user", user.id, {"confirmation": True})
             db.commit()
             st.session_state.clear()
-            st.success("Account deleted.")
+            clear_session_cookie()
+            flash("Your account has been deleted.")
             st.rerun()
 
 
@@ -1758,7 +1889,7 @@ def page_contacts(db, user):
             )
             db.add(c)
             db.commit()
-            st.success("Contact added.")
+            flash("Contact added.")
             st.rerun()
 
     st.divider()
@@ -2232,11 +2363,67 @@ def check_screening_nudge(db, user):
     )
 
 
+def email_verification_required() -> bool:
+    """Verification is enforced when email delivery is configured (RESEND_API_KEY
+    set), so nobody is locked out of a deployment that cannot send email. Set
+    SANJEEVANI_REQUIRE_EMAIL_VERIFICATION to true/false to override."""
+    flag = os.getenv("SANJEEVANI_REQUIRE_EMAIL_VERIFICATION")
+    if flag is not None and flag.strip() != "":
+        return flag.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(os.getenv("RESEND_API_KEY"))
+
+
+def send_new_verification_link(db, user) -> bool:
+    verify_raw = secrets.token_urlsafe(48)
+    db.add(models.VerificationToken(
+        user_id=user.id,
+        token_hash=hashlib.sha256(verify_raw.encode()).hexdigest(),
+        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=24),
+    ))
+    db.commit()
+    app_url = os.getenv("SANJEEVANI_APP_URL", "https://sanjeevani-w3yji9hmnzsljkkqtkrxpe.streamlit.app")
+    return bool(email_service.send_verification_email(user.email, f"{app_url}/?verify={verify_raw}"))
+
+
+def page_verify_email_gate(db, user):
+    """Shown instead of the app until the email address is verified. Crisis
+    helplines stay visible: nobody should be blocked from them."""
+    st.title("Please verify your email")
+    st.write(
+        f"We sent a verification link to **{user.email}**. Open it, then come back "
+        "here and press the button below."
+    )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("I've verified — continue", use_container_width=True):
+            db.refresh(user)
+            if user.email_verified_at is None:
+                st.warning("Not verified yet. Check your inbox (and spam folder) and open the link.")
+            else:
+                st.rerun()
+    with c2:
+        if st.button("Resend link", use_container_width=True, key="gate_resend"):
+            if not rate_limiter.allow(f"verify_resend:{user.id}"):
+                st.error("Too many requests. Please wait a few minutes.")
+            elif send_new_verification_link(db, user):
+                st.success("Sent! Check your inbox.")
+            else:
+                st.error("We couldn't send the email right now. Please try again later.")
+    if st.button("Sign out", key="gate_signout"):
+        st.session_state.clear()
+        clear_session_cookie()
+        st.rerun()
+    st.divider()
+    st.markdown(crisis_resources("IN"))
+
+
 def main():
     render_banner()
     inject_pwa_support()
     handle_email_verification_link()
     restore_session_from_cookie()
+    flush_cookie_ops()
+    show_flash()
 
     if "user_id" not in st.session_state:
         st.session_state.setdefault("onboarding_stage", "intro")
@@ -2271,20 +2458,15 @@ def main():
             )
 
         if user.email_verified_at is None:
+            if email_verification_required():
+                run_page_safely(page_verify_email_gate, db, user)
+                return
             col1, col2 = st.columns([4, 1])
             with col1:
                 st.warning("Your email isn't verified yet.")
             with col2:
                 if st.button("Resend link"):
-                    verify_raw = secrets.token_urlsafe(48)
-                    db.add(models.VerificationToken(
-                        user_id=user.id,
-                        token_hash=hashlib.sha256(verify_raw.encode()).hexdigest(),
-                        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=24),
-                    ))
-                    db.commit()
-                    app_url = os.getenv("SANJEEVANI_APP_URL", "https://sanjeevani-w3yji9hmnzsljkkqtkrxpe.streamlit.app")
-                    sent = email_service.send_verification_email(user.email, f"{app_url}/?verify={verify_raw}")
+                    sent = send_new_verification_link(db, user)
                     st.success("Sent!" if sent else "Email delivery isn't configured on this deployment.")
 
         nudge_msg = check_screening_nudge(db, user)
@@ -2299,13 +2481,7 @@ def main():
 
         with st.sidebar:
             st.markdown('<div class="amrit-brand"><div class="amrit-brand-logo"><span>🪷</span></div><div><div class="amrit-brand-name">Sanjeevani</div><div class="amrit-brand-sub">AMRIT</div></div></div>', unsafe_allow_html=True)
-            _sb_name_col, _sb_avatar_col = st.columns([4, 1])
-            with _sb_name_col:
-                st.write(f"Signed in as **{user.display_name or user.email}**")
-            with _sb_avatar_col:
-                _avatar_label = (user.display_name or user.email or "?")[0].upper()
-                with st.popover(_avatar_label):
-                    page_profile(db, user)
+            st.write(f"Signed in as **{user.display_name or user.email}**")
             current_streak, longest_streak = compute_mood_streak(db, user)
             if current_streak > 0:
                 badge = streak_badge_for(current_streak)
@@ -2330,8 +2506,8 @@ def main():
             st.divider()
             st.markdown('<style>.st-key-signout_btn button{background:transparent !important;color:#6D3AE0 !important;border:1px solid rgba(124,58,237,0.4) !important;box-shadow:none !important;}</style>', unsafe_allow_html=True)
             if st.button("Sign out", key="signout_btn", use_container_width=True):
-                clear_session_cookie()
                 st.session_state.clear()
+                clear_session_cookie()
                 st.rerun()
 
         if choice == "💬 Chat":

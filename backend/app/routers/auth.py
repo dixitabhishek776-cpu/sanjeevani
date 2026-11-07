@@ -55,8 +55,10 @@ def _issue_refresh(db,user):
 
 @router.post("/register",response_model=schemas.UserOut,status_code=201)
 def register(request: Request, payload:schemas.UserCreate,db:Session=Depends(get_db)):
-    if payload.password.strip()!=payload.password or len(payload.password)<12:
-        raise HTTPException(400,"Password must be at least 12 characters and must not have leading/trailing whitespace")
+    from app.core.password_policy import password_problem
+    _pw_problem = password_problem(payload.password, email=str(payload.email))
+    if _pw_problem:
+        raise HTTPException(400, _pw_problem)
     email=payload.email.strip().lower()
     client_ip = request.client.host if request.client else "unknown"
     if not rate_limiter.allow(f"register:{client_ip}"):
