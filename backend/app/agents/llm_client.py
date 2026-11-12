@@ -99,7 +99,7 @@ def _call_backend(backend: str, client, system: str, user_message: str, max_toke
             # the budget, so a small max_tokens leaves the visible reply EMPTY.
             # Keep reasoning short and give generous headroom.
             max_tokens=max(max_tokens * 4, 1200),
-            reasoning_effort="low",
+            extra_body={"reasoning_effort": "low"},  # extra_body works on every groq SDK version
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_message},
