@@ -95,14 +95,22 @@ def _call_backend(backend: str, client, system: str, user_message: str, max_toke
     if backend == "groq":
         response = client.chat.completions.create(
             model="openai/gpt-oss-20b",
-            max_tokens=max_tokens,
+            # gpt-oss is a reasoning model: hidden reasoning tokens count against
+            # the budget, so a small max_tokens leaves the visible reply EMPTY.
+            # Keep reasoning short and give generous headroom.
+            max_tokens=max(max_tokens * 4, 1200),
+            reasoning_effort="low",
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_message},
             ],
             timeout=15.0,
         )
-        return response.choices[0].message.content or ""
+        text = response.choices[0].message.content or ""
+        if not text.strip():
+            # Empty reply: raise so call_llm retries / falls back to Gemini.
+            raise RuntimeError("groq returned an empty completion")
+        return text
     if backend == "gemini":
         model = client.GenerativeModel("gemini-2.5-flash-lite", system_instruction=system)
         response = model.generate_content(
