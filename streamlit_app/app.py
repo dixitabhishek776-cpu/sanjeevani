@@ -1223,6 +1223,9 @@ def page_chat(db, user):
             models.SafetyAssessment.user_id == user.id,
             models.SafetyAssessment.concern_level.in_(["high", "immediate"]),
             models.Alert.status.in_(["pending_review", "acknowledged"]),
+            # An unreviewed alert only keeps raising the bar for 24 hours, so a
+            # forgotten test alert cannot make every later message look "high".
+            models.SafetyAssessment.created_at >= dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24),
         )
         .order_by(models.SafetyAssessment.created_at.desc())
         .first()
