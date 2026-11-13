@@ -27,6 +27,9 @@ _fallback_client = None
 _fallback_backend = None
 _fallback_checked = False
 
+# Ordered by preference; override with GROQ_MODELS="a,b" without a code change.
+GROQ_MODELS = [m.strip() for m in os.getenv("GROQ_MODELS", "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",") if m.strip()]
+
 
 def get_client():
     """Lazy-imports the relevant SDK on first real use, rather than
@@ -93,24 +96,29 @@ def get_fallback_client():
 
 def _call_backend(backend: str, client, system: str, user_message: str, max_tokens: int) -> str:
     if backend == "groq":
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            # gpt-oss is a reasoning model: hidden reasoning tokens count against
-            # the budget, so a small max_tokens leaves the visible reply EMPTY.
-            # Keep reasoning short and give generous headroom.
-            max_tokens=max(max_tokens * 4, 1200),
-            extra_body={"reasoning_effort": "low"},  # extra_body works on every groq SDK version
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_message},
-            ],
-            timeout=15.0,
-        )
-        text = response.choices[0].message.content or ""
-        if not text.strip():
-            # Empty reply: raise so call_llm retries / falls back to Gemini.
-            raise RuntimeError("groq returned an empty completion")
-        return text
+        # Plain (non-reasoning) models first: they reliably return visible text
+        # and JSON. Each is tried in turn so one model being rate-limited,
+        # retired or flaky does not take the whole chat down.
+        last_err = None
+        for model_name in GROQ_MODELS:
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    max_tokens=max_tokens,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user_message},
+                    ],
+                    timeout=15.0,
+                )
+                text = response.choices[0].message.content or ""
+                if text.strip():
+                    return text
+                last_err = RuntimeError(f"groq model {model_name} returned an empty completion")
+            except Exception as exc:  # try the next model
+                last_err = exc
+            record_incident("llm_groq_model_failed", f"{model_name}: {last_err}"[:300])
+        raise last_err
     if backend == "gemini":
         model = client.GenerativeModel("gemini-2.5-flash-lite", system_instruction=system)
         response = model.generate_content(

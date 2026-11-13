@@ -1110,7 +1110,10 @@ def page_chat(db, user):
         with st.chat_message(msg["sender"]):
             st.write(msg["text"])
             if msg.get("resources_text"):
-                st.warning(msg["resources_text"])
+                if msg.get("resources_degraded"):
+                    st.caption("If you ever feel unsafe: call 112, or Tele-MANAS 14416 (24x7).")
+                else:
+                    st.warning(msg["resources_text"])
             if msg.get("suggested_mood") is not None:
                 with st.expander(f"🤖 Suggested mood check-in: {msg['suggested_mood']}/10 — log it?"):
                     _sm = st.slider("Adjust if needed", 1, 10, msg["suggested_mood"], key=f"auto_mood_slider_{_i}")
@@ -1275,6 +1278,7 @@ def page_chat(db, user):
         # Safety check was unavailable for this message: fail closed by always
         # showing the helplines alongside the reply.
         ai_reply["resources_text"] = crisis_resources("IN")
+        ai_reply["resources_degraded"] = True
 
     ai_msg = models.Message(chat_id=chat.id, sender="ai", content_encrypted=cipher.encrypt(ai_reply["text"]))
     db.add(ai_msg)
@@ -1302,6 +1306,7 @@ def page_chat(db, user):
     st.session_state["chat_history"].append({
         "sender": "assistant", "text": ai_reply["text"],
         "resources_text": ai_reply["resources_text"],
+        "resources_degraded": bool(ai_reply.get("resources_degraded")),
         "suggested_mood": suggested_mood,
         "suggest_screening": suggest_screening,
         "intervention": ai_reply.get("intervention"),

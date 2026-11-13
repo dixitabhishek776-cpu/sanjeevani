@@ -50,6 +50,15 @@ class LocalDevMasterKeyProvider(MasterKeyProvider):
         self._Fernet = Fernet
         key = os.getenv("SANJEEVANI_MASTER_KEY")
         if not key:
+            db_url = os.getenv("DATABASE_URL", "")
+            if db_url and not any(h in db_url for h in ("localhost", "127.0.0.1", "@db:", "sqlite")):
+                # A real (remote) database is configured but no key: generating a
+                # throw-away key would make everyone's saved data unreadable after
+                # the next restart. Refuse instead of silently losing data.
+                raise RuntimeError(
+                    "SANJEEVANI_MASTER_KEY is not set but a remote DATABASE_URL is. "
+                    "Set a permanent SANJEEVANI_MASTER_KEY in the app secrets."
+                )
             key = Fernet.generate_key().decode()
             os.environ["SANJEEVANI_MASTER_KEY"] = key
             logger.warning(
