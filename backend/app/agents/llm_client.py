@@ -28,7 +28,7 @@ _fallback_backend = None
 _fallback_checked = False
 
 # Ordered by preference; override with GROQ_MODELS="a,b" without a code change.
-GROQ_MODELS = [m.strip() for m in os.getenv("GROQ_MODELS", "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",") if m.strip()]
+GROQ_MODELS = [m.strip() for m in os.getenv("GROQ_MODELS", "openai/gpt-oss-20b,openai/gpt-oss-120b").split(",") if m.strip()]
 
 
 def get_client():
@@ -96,20 +96,22 @@ def get_fallback_client():
 
 def _call_backend(backend: str, client, system: str, user_message: str, max_tokens: int) -> str:
     if backend == "groq":
-        # Plain (non-reasoning) models first: they reliably return visible text
-        # and JSON. Each is tried in turn so one model being rate-limited,
-        # retired or flaky does not take the whole chat down.
+        # Groq retired its Llama models (Aug 2026); the available chat models are
+        # reasoning models whose hidden thinking counts against max_tokens, so we
+        # give generous headroom and ask for low effort. Each model is tried in
+        # turn so one being rate-limited, retired or empty does not take the chat down.
         last_err = None
         for model_name in GROQ_MODELS:
             try:
                 response = client.chat.completions.create(
                     model=model_name,
-                    max_tokens=max_tokens,
+                    max_tokens=max(max_tokens * 4, 1500),
+                    extra_body={"reasoning_effort": "low"},
                     messages=[
                         {"role": "system", "content": system},
                         {"role": "user", "content": user_message},
                     ],
-                    timeout=15.0,
+                    timeout=25.0,
                 )
                 text = response.choices[0].message.content or ""
                 if text.strip():
