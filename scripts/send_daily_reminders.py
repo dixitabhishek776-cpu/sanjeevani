@@ -6,7 +6,7 @@ Run by a scheduled GitHub Actions workflow (.github/workflows/daily-
 reminder.yml) since Streamlit Cloud has no built-in cron — this script
 connects directly to the same Postgres database the app uses.
 
-Required environment variables: DATABASE_URL, RESEND_API_KEY.
+Required environment variables: DATABASE_URL, plus SMTP_USER and SMTP_PASSWORD (Gmail app password) or RESEND_API_KEY.
 Optional: SANJEEVANI_APP_URL (defaults to the deployed Streamlit URL).
 """
 import os

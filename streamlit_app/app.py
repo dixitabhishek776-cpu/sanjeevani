@@ -2378,7 +2378,7 @@ def email_verification_required() -> bool:
     flag = os.getenv("SANJEEVANI_REQUIRE_EMAIL_VERIFICATION")
     if flag is not None and flag.strip() != "":
         return flag.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(os.getenv("RESEND_API_KEY"))
+    return bool(os.getenv("RESEND_API_KEY") or (os.getenv("SMTP_USER") and os.getenv("SMTP_PASSWORD")))
 
 
 def send_new_verification_link(db, user) -> bool:

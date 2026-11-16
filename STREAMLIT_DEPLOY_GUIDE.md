@@ -37,7 +37,9 @@ SANJEEVANI_MASTER_KEY = "generate-your-own-see-below"
 SANJEEVANI_JWT_SECRET = "random-text"
 SANJEEVANI_APP_URL = "https://your-app.streamlit.app"
 GROQ_API_KEY = "gsk_xxx"
-RESEND_API_KEY = "re_xxx"
+RESEND_API_KEY = "re_xxx"          # only delivers to the Resend account owner
+SMTP_USER = "yourname@gmail.com"      # Gmail + App password: emails ANY address, no domain needed
+SMTP_PASSWORD = "xxxx xxxx xxxx xxxx"
 SANJEEVANI_ADMIN_EMAIL = "you@example.com"
 # Optional
 # GEMINI_API_KEY = "xxx"
